@@ -76,22 +76,23 @@ fun DashboardScreen(
             )
         },
         floatingActionButton = {
+            val hasActiveSchedule = state.isTimerRunning || state.exactScheduledAtMillis > 0L
             val canTrigger = state.hasRequiredPermissions && state.isProviderEnabled
-            val fabText = if (state.isTimerRunning) "Cancel Timer" else "Trigger Call"
+            val fabText = if (hasActiveSchedule) "Cancel Scheduled Call" else "Trigger Call"
 
             ExtendedFloatingActionButton(
                 onClick = {
-                    if (canTrigger || state.isTimerRunning) {
+                    if (canTrigger || hasActiveSchedule) {
                         viewModel.onTriggerOrCancelClicked()
                     }
                 },
                 shape = RoundedCornerShape(32.dp),
-                containerColor = if (canTrigger || state.isTimerRunning) {
+                containerColor = if (canTrigger || hasActiveSchedule) {
                     MaterialTheme.colorScheme.primary
                 } else {
                     MaterialTheme.colorScheme.surfaceVariant
                 },
-                contentColor = if (canTrigger || state.isTimerRunning) {
+                contentColor = if (canTrigger || hasActiveSchedule) {
                     MaterialTheme.colorScheme.onPrimary
                 } else {
                     MaterialTheme.colorScheme.onSurfaceVariant
@@ -155,34 +156,22 @@ fun DashboardScreen(
                             )
                         }
                     }
-                }
-            }
 
-            OutlinedButton(
-                onClick = { showTimePicker = true },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp)
-            ) {
-                Text("Schedule Exact Time")
-            }
-
-            if (state.exactScheduledAtMillis > 0L) {
-                ElevatedCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    OutlinedButton(
+                        onClick = { showTimePicker = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(24.dp)
                     ) {
+                        Text("Schedule Exact Time")
+                    }
+
+                    if (state.exactScheduledAtMillis > 0L) {
                         Text(
                             text = "Call scheduled for ${FakeCallViewModel.formatExactTime(state.exactScheduledAtMillis)}",
                             style = MaterialTheme.typography.titleMedium
                         )
                         OutlinedButton(onClick = viewModel::cancelExactSchedule) {
-                            Text("Cancel Scheduled Call")
+                            Text("Cancel Exact Schedule")
                         }
                     }
                 }
@@ -190,7 +179,7 @@ fun DashboardScreen(
 
             if (state.isTimerRunning) {
                 Text(
-                    text = "Countdown active. Tap Cancel Timer to stop it.",
+                    text = "Countdown active. Tap Cancel Scheduled Call to stop it.",
                     color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.bodyLarge
                 )

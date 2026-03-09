@@ -190,6 +190,12 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
             return false
         }
 
+        if (state.isTimerRunning || state.timerEndsAtMillis > 0L) {
+            FakeCallSchedulerService.cancel(getApplication())
+            prefs.edit().remove(KEY_TIMER_ENDS_AT).apply()
+            _uiState.update { it.copy(isTimerRunning = false, timerEndsAtMillis = 0L) }
+        }
+
         val app = getApplication<Application>()
         if (!ExactCallScheduler.canScheduleExactAlarms(app)) {
             _uiState.update {
@@ -261,6 +267,8 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
     fun onTriggerOrCancelClicked() {
         if (uiState.value.isTimerRunning) {
             cancelTimer()
+        } else if (uiState.value.exactScheduledAtMillis > 0L) {
+            cancelExactSchedule()
         } else {
             scheduleFakeCall()
         }
@@ -283,6 +291,12 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
         if (number.isBlank()) {
             _uiState.update { it.copy(statusMessage = "Enter a caller number before scheduling.") }
             return
+        }
+
+        if (state.exactScheduledAtMillis > 0L) {
+            ExactCallScheduler.cancel(getApplication())
+            prefs.edit().remove(KEY_EXACT_SCHEDULED_AT).apply()
+            _uiState.update { it.copy(exactScheduledAtMillis = 0L) }
         }
 
         prefs.edit()
@@ -437,3 +451,6 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
         }
     }
 }
+
+
+
