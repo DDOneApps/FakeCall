@@ -14,6 +14,8 @@
 
 **An open-source Android application to simulate incoming calls, featuring a modern Material 3 UI with dynamic Monet support.**
 
+
+Fork: added call recording and made audio hd
 </div>
 
 ## Overview
@@ -150,7 +152,7 @@ We welcome contributions to FakeCall!
 
 **⭐ Star this repo if you find it helpful!**
 
-Made with ❤️(and AI 🤖) by [DDOneApps](https://github.com/DDOneApps)
+Made with ❤️(and AI 🤖)
 
 </div>
 
