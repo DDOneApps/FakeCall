@@ -63,7 +63,6 @@ _Call interface_
 
 [![Dynamic Color](https://img.shields.io/badge/Monet-8BC34A?style=for-the-badge&logo=android&logoColor=white)](https://developer.android.com/design/color/dynamic-color)
 
-## Star History
 
 ## Star History
 
