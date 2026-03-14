@@ -63,6 +63,18 @@ _Call interface_
 
 [![Dynamic Color](https://img.shields.io/badge/Monet-8BC34A?style=for-the-badge&logo=android&logoColor=white)](https://developer.android.com/design/color/dynamic-color)
 
+## Star History
+
+## Star History
+
+<a href="https://www.star-history.com/?repos=DDOneApps%2FFakeCall&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=DDOneApps/FakeCall&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=DDOneApps/FakeCall&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=DDOneApps/FakeCall&type=date&legend=top-left" />
+ </picture>
+</a>
+
 ##  Project Structure
 
 ```
