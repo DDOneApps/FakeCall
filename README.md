@@ -8,7 +8,7 @@
 
 [![GitHub stars](https://img.shields.io/github/stars/DDOneApps/FakeCall?style=for-the-badge)](https://github.com/DDOneApps/FakeCall/stargazers) [![GitHub forks](https://img.shields.io/github/forks/DDOneApps/FakeCall?style=for-the-badge)](https://github.com/DDOneApps/FakeCall/network) [![GitHub issues](https://img.shields.io/github/issues/DDOneApps/FakeCall?style=for-the-badge)](https://github.com/DDOneApps/FakeCall/issues)
 
-[![GitHub license](https://img.shields.io/badge/license-No%20License%20Specified-red?style=for-the-badge)](LICENSE) <!-- TODO: Add a LICENSE file and update badge -->
+[![GitHub license](https://img.shields.io/badge/license-GPL%20v3-red?style=for-the-badge)](LICENSE) <!-- TODO: Add a LICENSE file and update badge -->
 
 </p>
 
