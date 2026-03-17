@@ -2,6 +2,8 @@ package com.upnp.fakeCall.ui.screens
 
 import android.content.ActivityNotFoundException
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -31,6 +33,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
@@ -45,14 +48,19 @@ import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.outlined.VolumeOff
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -62,6 +70,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -71,11 +80,15 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.upnp.fakeCall.BuildConfig
 import com.upnp.fakeCall.FakeCallViewModel
+import com.upnp.fakeCall.ReleaseInfo
+import com.upnp.fakeCall.UpdateCheckResult
 import com.upnp.fakeCall.ivr.IvrNode
 import com.upnp.fakeCall.ui.components.AnimatedIcon
 import com.upnp.fakeCall.ui.components.ExpressiveTextField
 import com.upnp.fakeCall.ui.components.bounceClick
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,6 +99,8 @@ fun SettingsScreen(
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     val ivrConfig = state.ivrConfig
     val ivrNodes = ivrConfig?.nodes?.values?.sortedBy { it.title } ?: emptyList()
@@ -93,6 +108,8 @@ fun SettingsScreen(
     var showAddNodeDialog by rememberSaveable { mutableStateOf(false) }
     var mappingNodeId by rememberSaveable { mutableStateOf<String?>(null) }
     var pendingAudioNodeId by rememberSaveable { mutableStateOf<String?>(null) }
+    var isCheckingUpdates by rememberSaveable { mutableStateOf(false) }
+    var updateDialogRelease by remember { mutableStateOf<ReleaseInfo?>(null) }
 
     val audioPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -135,6 +152,7 @@ fun SettingsScreen(
         Scaffold(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
+            snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
             topBar = {
                 Row(
                     modifier = Modifier
@@ -373,6 +391,112 @@ fun SettingsScreen(
                 }
 
                 item {
+                    ElevatedCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(32.dp),
+                        colors = CardDefaults.elevatedCardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                        ),
+                        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            Text(
+                                text = "About & Updates",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Current Version: ${BuildConfig.VERSION_NAME}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Surface(
+                                shape = RoundedCornerShape(22.dp),
+                                color = MaterialTheme.colorScheme.surfaceContainer
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .bounceClick(onClick = { openUrl(context, GITHUB_REPO_URL) })
+                                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Code,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "GitHub Repository",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = "DDOneApps/FakeCall",
+                                            style = MaterialTheme.typography.labelLarge,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    androidx.compose.material3.Icon(
+                                        imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+
+                            FilledTonalButton(
+                                onClick = {
+                                    if (isCheckingUpdates) return@FilledTonalButton
+                                    coroutineScope.launch {
+                                        isCheckingUpdates = true
+                                        when (val result = viewModel.checkForUpdatesManual()) {
+                                            is UpdateCheckResult.UpdateAvailable -> {
+                                                updateDialogRelease = result.release
+                                            }
+                                            UpdateCheckResult.UpToDate -> {
+                                                snackbarHostState.showSnackbar("You are on the latest version.")
+                                            }
+                                            UpdateCheckResult.RateLimited -> {
+                                                snackbarHostState.showSnackbar("GitHub rate limit reached. Try again later.")
+                                            }
+                                            UpdateCheckResult.Unavailable -> {
+                                                snackbarHostState.showSnackbar("Couldn't check for updates right now.")
+                                            }
+                                        }
+                                        isCheckingUpdates = false
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .bounceClick(enabled = !isCheckingUpdates)
+                            ) {
+                                if (isCheckingUpdates) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier
+                                            .width(18.dp)
+                                            .height(18.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Text("Checking...")
+                                } else {
+                                    Text("Check for Updates")
+                                }
+                            }
+                        }
+                    }
+                }
+
+                item {
                     Spacer(modifier = Modifier.height(12.dp))
                 }
             }
@@ -398,6 +522,36 @@ fun SettingsScreen(
             onConfirm = { digit, targetId ->
                 viewModel.addIvrRoute(mappingNode.id, digit, targetId)
                 mappingNodeId = null
+            }
+        )
+    }
+
+    val release = updateDialogRelease
+    if (release != null) {
+        AlertDialog(
+            onDismissRequest = { updateDialogRelease = null },
+            title = { Text("Update Available") },
+            text = {
+                Text("Version ${release.tagName} is available on GitHub Releases.")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        openUrl(context, release.htmlUrl)
+                        updateDialogRelease = null
+                    },
+                    modifier = Modifier.bounceClick()
+                ) {
+                    Text("Update Now")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { updateDialogRelease = null },
+                    modifier = Modifier.bounceClick()
+                ) {
+                    Text("Later")
+                }
             }
         )
     }
@@ -754,3 +908,16 @@ private fun openCallingAccounts(context: Context, viewModel: FakeCallViewModel) 
         }
     }
 }
+
+private fun openUrl(context: Context, url: String) {
+    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+    runCatching {
+        context.startActivity(intent)
+    }.onFailure {
+        if (it is ActivityNotFoundException) {
+            // Ignore silently if no browser is available.
+        }
+    }
+}
+
+private const val GITHUB_REPO_URL = "https://github.com/DDOneApps/FakeCall"

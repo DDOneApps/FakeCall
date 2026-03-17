@@ -61,7 +61,8 @@ data class FakeCallUiState(
     val timerEndsAtMillis: Long = 0L,
     val statusMessage: String = "",
     val isRecordingEnabled: Boolean = true,
-    val recordingsFolderName: String = "Downloads/FakeCall"
+    val recordingsFolderName: String = "Downloads/FakeCall",
+    val startupUpdate: ReleaseInfo? = null
 )
 
 class FakeCallViewModel(application: Application) : AndroidViewModel(application) {
@@ -69,6 +70,7 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
     private val telecomHelper = TelecomHelper(application)
     private val prefs = application.getSharedPreferences(PREFS_NAME, 0)
     private val ivrStore = IvrConfigStore()
+    private val updateChecker = UpdateChecker()
 
     private val _uiState = MutableStateFlow(
         FakeCallUiState(
@@ -109,6 +111,18 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
                 delay(1_000L)
             }
         }
+
+        viewModelScope.launch {
+            checkForUpdatesOnStartup()
+        }
+    }
+
+    suspend fun checkForUpdatesManual(): UpdateCheckResult {
+        return updateChecker.checkForUpdate(BuildConfig.VERSION_NAME)
+    }
+
+    fun dismissStartupUpdate() {
+        _uiState.update { it.copy(startupUpdate = null) }
     }
 
     fun onPermissionStateChanged(granted: Boolean) {
@@ -658,6 +672,15 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
         }
         val enabled = telecomHelper.isAccountEnabled()
         _uiState.update { it.copy(isProviderEnabled = enabled) }
+    }
+
+    private suspend fun checkForUpdatesOnStartup() {
+        when (val result = updateChecker.checkForUpdate(BuildConfig.VERSION_NAME)) {
+            is UpdateCheckResult.UpdateAvailable -> {
+                _uiState.update { it.copy(startupUpdate = result.release) }
+            }
+            else -> Unit
+        }
     }
 
     private fun updateIvrConfig(transform: (IvrConfig?) -> IvrConfig?) {
