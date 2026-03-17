@@ -187,7 +187,7 @@ fun OnboardingScreen(
                                     style = MaterialTheme.typography.titleMedium
                                 )
                                 Text(
-                                    text = "Some OnePlus/Oppo/Realme/Samsung builds hide the screen. You can open it directly via ADB:",
+                                    text = "Some builds hide the screen. You can open it via ADB using the standard intent (more robust on Android 17+):",
                                     style = MaterialTheme.typography.labelLarge,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -199,7 +199,7 @@ fun OnboardingScreen(
                             tonalElevation = 1.dp
                         ) {
                             Text(
-                                text = "adb shell am start -a android.intent.action.MAIN -n com.android.server.telecom/.settings.EnableAccountPreferenceActivity",
+                                text = "adb shell am start -a android.telecom.action.CHANGE_PHONE_ACCOUNTS",
                                 style = MaterialTheme.typography.labelLarge,
                                 fontFamily = FontFamily.Monospace,
                                 color = MaterialTheme.colorScheme.onSurface,

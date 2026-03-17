@@ -504,7 +504,27 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun openCallingAccountsIntent(): Intent {
-        return Intent(TelecomManager.ACTION_CHANGE_PHONE_ACCOUNTS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val actionIntent = Intent(TelecomManager.ACTION_CHANGE_PHONE_ACCOUNTS)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+        val packageManager = getApplication<Application>().packageManager
+        val resolveInfo = packageManager.resolveActivity(
+            actionIntent,
+            android.content.pm.PackageManager.MATCH_DEFAULT_ONLY
+        )
+
+        if (resolveInfo != null) {
+            return actionIntent
+        }
+
+        // Fallback for some older devices or specific builds (OnePlus/Oppo/Samsung/etc.)
+        return Intent().apply {
+            setClassName(
+                "com.android.server.telecom",
+                "com.android.server.telecom.settings.EnableAccountPreferenceActivity"
+            )
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
     }
 
     fun completeOnboarding() {
