@@ -62,6 +62,9 @@ data class FakeCallUiState(
     val statusMessage: String = "",
     val isRecordingEnabled: Boolean = true,
     val recordingsFolderName: String = "Downloads/FakeCall",
+    val quickTriggerCallerName: String = "",
+    val quickTriggerCallerNumber: String = "",
+    val quickTriggerDelaySeconds: Int = QuickTriggerManager.DEFAULT_DELAY_SECONDS,
     val startupUpdate: ReleaseInfo? = null
 )
 
@@ -71,6 +74,7 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
     private val prefs = application.getSharedPreferences(PREFS_NAME, 0)
     private val ivrStore = IvrConfigStore()
     private val updateChecker = UpdateChecker()
+    private val quickTriggerDefaults = QuickTriggerManager.loadDefaults(application)
 
     private val _uiState = MutableStateFlow(
         FakeCallUiState(
@@ -94,7 +98,10 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
             selectedAudioName = prefs.getString(KEY_AUDIO_NAME, "Default").orEmpty(),
             timerEndsAtMillis = prefs.getLong(KEY_TIMER_ENDS_AT, 0L),
             isRecordingEnabled = prefs.getBoolean(KEY_RECORDING_ENABLED, true),
-            recordingsFolderName = prefs.getString(KEY_RECORDINGS_FOLDER_NAME, "Downloads/FakeCall").orEmpty()
+            recordingsFolderName = prefs.getString(KEY_RECORDINGS_FOLDER_NAME, "Downloads/FakeCall").orEmpty(),
+            quickTriggerCallerName = quickTriggerDefaults.callerName,
+            quickTriggerCallerNumber = quickTriggerDefaults.callerNumber,
+            quickTriggerDelaySeconds = quickTriggerDefaults.delaySeconds
         )
     )
     val uiState: StateFlow<FakeCallUiState> = _uiState.asStateFlow()
@@ -142,6 +149,18 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
 
     fun onProviderNameChange(value: String) {
         _uiState.update { it.copy(providerName = value) }
+    }
+
+    fun onQuickTriggerCallerNameChange(value: String) {
+        saveQuickTriggerDefaults(uiState.value.copy(quickTriggerCallerName = value))
+    }
+
+    fun onQuickTriggerCallerNumberChange(value: String) {
+        saveQuickTriggerDefaults(uiState.value.copy(quickTriggerCallerNumber = value))
+    }
+
+    fun onQuickTriggerDelayChange(delaySeconds: Int) {
+        saveQuickTriggerDefaults(uiState.value.copy(quickTriggerDelaySeconds = delaySeconds))
     }
 
     fun onCallerNameChange(value: String) {
@@ -687,6 +706,24 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
         val updated = transform(uiState.value.ivrConfig)
         ivrStore.save(getApplication(), updated)
         _uiState.update { it.copy(ivrConfig = updated) }
+    }
+
+    private fun saveQuickTriggerDefaults(state: FakeCallUiState) {
+        QuickTriggerManager.saveDefaults(
+            context = getApplication(),
+            defaults = QuickTriggerDefaults(
+                callerName = state.quickTriggerCallerName,
+                callerNumber = state.quickTriggerCallerNumber,
+                delaySeconds = state.quickTriggerDelaySeconds
+            )
+        )
+        _uiState.update {
+            it.copy(
+                quickTriggerCallerName = state.quickTriggerCallerName,
+                quickTriggerCallerNumber = state.quickTriggerCallerNumber,
+                quickTriggerDelaySeconds = state.quickTriggerDelaySeconds
+            )
+        }
     }
 
     private fun customCountdownSeconds(state: FakeCallUiState): Int {

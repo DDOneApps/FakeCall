@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -35,6 +36,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
@@ -109,6 +111,7 @@ fun SettingsScreen(
     var mappingNodeId by rememberSaveable { mutableStateOf<String?>(null) }
     var pendingAudioNodeId by rememberSaveable { mutableStateOf<String?>(null) }
     var isCheckingUpdates by rememberSaveable { mutableStateOf(false) }
+    var quickTriggerDelayExpanded by rememberSaveable { mutableStateOf(false) }
     var updateDialogRelease by remember { mutableStateOf<ReleaseInfo?>(null) }
 
     val audioPickerLauncher = rememberLauncherForActivityResult(
@@ -312,6 +315,95 @@ fun SettingsScreen(
                         subtitle = "Use Downloads/FakeCall",
                         onClick = viewModel::clearRecordingFolderSelection
                     )
+                }
+
+                item {
+                    PreferenceCategoryHeader("Automation")
+                }
+
+                item {
+                    PreferenceCard(
+                        icon = Icons.Outlined.AccessTime,
+                        title = "Automation & Quick Trigger Defaults",
+                        subtitle = "Used by external intents and the accessibility shortcut.",
+                        onClick = null,
+                        trailingContent = null
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            ExpressiveTextField(
+                                value = state.quickTriggerCallerName,
+                                onValueChange = viewModel::onQuickTriggerCallerNameChange,
+                                label = "Default caller name",
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            ExpressiveTextField(
+                                value = state.quickTriggerCallerNumber,
+                                onValueChange = viewModel::onQuickTriggerCallerNumberChange,
+                                label = "Default caller number",
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                androidx.compose.material3.OutlinedTextField(
+                                    value = FakeCallViewModel.formatDelay(state.quickTriggerDelaySeconds),
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("Default delay") },
+                                    trailingIcon = {
+                                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = quickTriggerDelayExpanded)
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(24.dp)
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .matchParentSize()
+                                        .clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null
+                                        ) {
+                                            quickTriggerDelayExpanded = !quickTriggerDelayExpanded
+                                        }
+                                )
+                                DropdownMenu(
+                                    expanded = quickTriggerDelayExpanded,
+                                    onDismissRequest = { quickTriggerDelayExpanded = false }
+                                ) {
+                                    viewModel.delayOptionsSeconds.forEach { delaySeconds ->
+                                        DropdownMenuItem(
+                                            text = { Text(FakeCallViewModel.formatDelay(delaySeconds)) },
+                                            onClick = {
+                                                viewModel.onQuickTriggerDelayChange(delaySeconds)
+                                                quickTriggerDelayExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                            Text(
+                                text = "Quick triggers reuse the audio configured in the Audio section above, including your selected file or default playback behavior.",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            FilledTonalButton(
+                                onClick = { openAccessibilitySettings(context) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .bounceClick()
+                            ) {
+                                Text("Open Accessibility Settings")
+                            }
+                            Text(
+                                text = "Enable the FakeCall accessibility service there to use the system accessibility button or shortcut for instant scheduling.",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "Action: `com.upnp.fakeCall.TRIGGER` with extras `caller_name`, `caller_number`, and `delay`.",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
 
                 item {
@@ -900,6 +992,17 @@ private fun MappingDialog(
 
 private fun openCallingAccounts(context: Context, viewModel: FakeCallViewModel) {
     val intent = viewModel.openCallingAccountsIntent()
+    runCatching {
+        context.startActivity(intent)
+    }.onFailure {
+        if (it is ActivityNotFoundException) {
+            // Ignore silently on unsupported devices.
+        }
+    }
+}
+
+private fun openAccessibilitySettings(context: Context) {
+    val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
     runCatching {
         context.startActivity(intent)
     }.onFailure {

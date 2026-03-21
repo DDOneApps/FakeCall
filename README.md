@@ -34,6 +34,43 @@ Introducing FakeCall. Unlike other apps that merely mock a UI, this app integrat
 -  **Call History:** Simulated calls are being shown in call history
 -  **IVR Mode:** assign audio files to keys and make sub-menus
 -  **Recording:** record microphone audio of a Fake call
+-  **Automation API:** trigger calls from Tasker, MacroDroid, or ADB via a broadcast intent
+-  **Accessibility Shortcut:** schedule a fake call from the system accessibility button using saved defaults
+
+## Automation API
+
+FakeCall exposes a broadcast receiver for automation apps.
+
+**Action**
+
+`com.upnp.fakeCall.TRIGGER`
+
+**Extras**
+
+- `caller_name` (`String`, optional)
+- `caller_number` (`String`, optional)
+- `delay` (`Int`, optional, seconds)
+
+If one or more extras are omitted, FakeCall falls back to the saved **Automation & Quick Trigger Defaults** from Settings.
+
+**ADB example**
+
+```bash
+adb shell am broadcast -a com.upnp.fakeCall.TRIGGER \
+  --es caller_name "Boss" \
+  --es caller_number "+49123456789" \
+  --ei delay 30
+```
+
+This API works well with Tasker, MacroDroid, and similar automation apps that can send custom broadcasts.
+
+## Accessibility Quick Trigger
+
+Enable the `FakeCall` accessibility service and assign it to the system accessibility button or shortcut. When invoked, it schedules a fake call using the saved quick-trigger defaults from Settings and shows a short confirmation toast.
+
+You can configure these defaults inside:
+
+`Settings -> Automation & Quick Trigger Defaults`
 
 ## Screenshots
 
