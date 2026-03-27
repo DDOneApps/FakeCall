@@ -4,8 +4,20 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.PredictiveBackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -35,6 +47,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
@@ -76,18 +89,26 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.lerp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.upnp.fakeCall.BuildConfig
 import com.upnp.fakeCall.FakeCallViewModel
+import com.upnp.fakeCall.QuickTriggerManager
 import com.upnp.fakeCall.ReleaseInfo
+import com.upnp.fakeCall.R
 import com.upnp.fakeCall.UpdateCheckResult
 import com.upnp.fakeCall.ivr.IvrNode
 import com.upnp.fakeCall.ui.components.AnimatedIcon
 import com.upnp.fakeCall.ui.components.ExpressiveTextField
 import com.upnp.fakeCall.ui.components.bounceClick
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -109,7 +130,10 @@ fun SettingsScreen(
     var mappingNodeId by rememberSaveable { mutableStateOf<String?>(null) }
     var pendingAudioNodeId by rememberSaveable { mutableStateOf<String?>(null) }
     var isCheckingUpdates by rememberSaveable { mutableStateOf(false) }
+    var quickTriggerDelayExpanded by rememberSaveable { mutableStateOf(false) }
     var updateDialogRelease by remember { mutableStateOf<ReleaseInfo?>(null) }
+    var activeSubmenu by rememberSaveable { mutableStateOf(SettingsSubmenu.MAIN) }
+    var backGestureProgress by remember { mutableStateOf(0f) }
 
     val audioPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -144,6 +168,31 @@ fun SettingsScreen(
         viewModel.importIvrConfig(uri)
     }
 
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        PredictiveBackHandler(enabled = activeSubmenu != SettingsSubmenu.MAIN) { progress ->
+            try {
+                progress.collect { event ->
+                    backGestureProgress = event.progress
+                }
+                activeSubmenu = SettingsSubmenu.MAIN
+                backGestureProgress = 0f
+            } catch (_: CancellationException) {
+                backGestureProgress = 0f
+            }
+        }
+    } else {
+        BackHandler(enabled = activeSubmenu != SettingsSubmenu.MAIN) {
+            backGestureProgress = 0f
+            activeSubmenu = SettingsSubmenu.MAIN
+        }
+    }
+
+    val settingsTitle = when (activeSubmenu) {
+        SettingsSubmenu.MAIN -> stringResource(R.string.settings_title)
+        SettingsSubmenu.AUTOMATION -> stringResource(R.string.settings_automation_title)
+        SettingsSubmenu.MAILBOX -> stringResource(R.string.settings_category_mailbox)
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -164,212 +213,456 @@ fun SettingsScreen(
                 ) {
                     AnimatedIcon(
                         imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                        contentDescription = "Back",
+                        contentDescription = stringResource(R.string.cd_back),
                         shape = CircleShape,
                         backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                         tint = MaterialTheme.colorScheme.onSurface,
-                        onClick = onBack
+                        onClick = {
+                            if (activeSubmenu == SettingsSubmenu.MAIN) {
+                                onBack()
+                            } else {
+                                activeSubmenu = SettingsSubmenu.MAIN
+                            }
+                        }
                     )
                     Text(
-                        text = "Settings",
-                        style = MaterialTheme.typography.displayMedium,
+                        text = settingsTitle,
+                        style = if (activeSubmenu == SettingsSubmenu.MAIN) {
+                            MaterialTheme.typography.displayMedium
+                        } else {
+                            MaterialTheme.typography.displaySmall
+                        },
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
         ) { innerPadding ->
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
-                    .padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(18.dp),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                    top = 8.dp,
-                    bottom = 24.dp
-                )
-            ) {
-                item {
-                    PreferenceCategoryHeader("Provider")
-                }
+            AnimatedContent(
+                targetState = activeSubmenu,
+                transitionSpec = {
+                    val slideSpec = tween<IntOffset>(durationMillis = 380, easing = FastOutSlowInEasing)
+                    val fadeSpec = tween<Float>(durationMillis = 180, easing = FastOutSlowInEasing)
+                    when {
+                        initialState == SettingsSubmenu.MAIN && targetState != SettingsSubmenu.MAIN -> {
+                            slideInHorizontally(animationSpec = slideSpec) { fullWidth -> fullWidth } + fadeIn(animationSpec = fadeSpec) togetherWith
+                                slideOutHorizontally(animationSpec = slideSpec) { fullWidth -> -fullWidth } + fadeOut(animationSpec = fadeSpec)
+                        }
 
-                if (!state.hasRequiredPermissions) {
+                        initialState != SettingsSubmenu.MAIN && targetState == SettingsSubmenu.MAIN -> {
+                            slideInHorizontally(animationSpec = slideSpec) { fullWidth -> -fullWidth } + fadeIn(animationSpec = fadeSpec) togetherWith
+                                slideOutHorizontally(animationSpec = slideSpec) { fullWidth -> fullWidth } + fadeOut(animationSpec = fadeSpec)
+                        }
+
+                        else -> {
+                            fadeIn(animationSpec = fadeSpec) togetherWith fadeOut(animationSpec = fadeSpec)
+                        }
+                    }
+                },
+                label = "settingsSubmenuTransition"
+            ) { submenu ->
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
+                        .padding(horizontal = 20.dp)
+                        .graphicsLayer {
+                            if (submenu != SettingsSubmenu.MAIN) {
+                                translationX = lerp(0f, 120f, backGestureProgress)
+                            }
+                        },
+                    verticalArrangement = Arrangement.spacedBy(18.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                        top = 8.dp,
+                        bottom = 24.dp
+                    )
+                ) {
+                if (submenu == SettingsSubmenu.MAIN) {
+                    item {
+                        PreferenceCategoryHeader(stringResource(R.string.settings_category_provider))
+                    }
+
+                    if (!state.hasRequiredPermissions) {
+                        item {
+                            PreferenceCard(
+                                icon = Icons.Outlined.Phone,
+                                title = stringResource(R.string.settings_phone_permissions_required_title),
+                                subtitle = stringResource(R.string.settings_phone_permissions_required_subtitle),
+                                onClick = onRequestPermissions,
+                                containerColor = MaterialTheme.colorScheme.errorContainer,
+                                contentColor = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                    }
+
                     item {
                         PreferenceCard(
                             icon = Icons.Outlined.Phone,
-                            title = "Phone permissions required",
-                            subtitle = "Grant access to register the call provider.",
-                            onClick = onRequestPermissions,
-                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                            title = stringResource(R.string.settings_provider_name_title),
+                            subtitle = stringResource(R.string.settings_provider_name_subtitle),
+                            onClick = null,
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        ) {
+                            ExpressiveTextField(
+                                value = state.providerName,
+                                onValueChange = viewModel::onProviderNameChange,
+                                label = stringResource(R.string.settings_provider_name_label),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+
+                    item {
+                        PreferenceCard(
+                            icon = Icons.Outlined.CheckCircle,
+                            title = stringResource(R.string.settings_save_provider_title),
+                            subtitle = stringResource(R.string.settings_save_provider_subtitle),
+                            onClick = viewModel::saveProvider
+                        )
+                    }
+
+                    item {
+                        PreferenceCard(
+                            icon = Icons.Outlined.Settings,
+                            title = stringResource(R.string.settings_enable_provider_title),
+                            subtitle = if (state.isProviderEnabled) {
+                                stringResource(R.string.settings_provider_enabled)
+                            } else {
+                                stringResource(R.string.settings_provider_disabled)
+                            },
+                            onClick = { openCallingAccounts(context, viewModel) }
+                        )
+                    }
+
+                    item {
+                        PreferenceCategoryHeader(stringResource(R.string.settings_category_audio))
+                    }
+
+                    item {
+                        PreferenceCard(
+                            icon = Icons.Outlined.MusicNote,
+                            title = stringResource(R.string.settings_select_audio_title),
+                            subtitle = stringResource(
+                                R.string.settings_select_audio_subtitle,
+                                state.selectedAudioName.ifBlank { stringResource(R.string.default_audio_name) }
+                            ),
+                            onClick = { audioPickerLauncher.launch(arrayOf("audio/*")) }
+                        )
+                    }
+
+                    item {
+                        PreferenceCard(
+                            icon = Icons.Outlined.VolumeOff,
+                            title = stringResource(R.string.settings_use_default_audio_title),
+                            subtitle = stringResource(R.string.settings_use_default_audio_subtitle),
+                            onClick = viewModel::clearAudioSelection
+                        )
+                    }
+
+                    item {
+                        PreferenceCard(
+                            icon = Icons.Outlined.Mic,
+                            title = stringResource(R.string.settings_mic_recording_title),
+                            subtitle = if (state.isRecordingEnabled) stringResource(R.string.settings_mic_recording_enabled) else stringResource(R.string.settings_mic_recording_disabled),
+                            onClick = null,
+                            trailingContent = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Switch(
+                                        checked = state.isRecordingEnabled,
+                                        onCheckedChange = viewModel::onRecordingEnabledChange
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    androidx.compose.material3.Icon(
+                                        imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        )
+                    }
+
+                    item {
+                        PreferenceCategoryHeader(stringResource(R.string.settings_category_storage))
+                    }
+
+                    item {
+                        PreferenceCard(
+                            icon = Icons.Outlined.Folder,
+                            title = stringResource(R.string.settings_recording_folder_title),
+                            subtitle = stringResource(R.string.settings_recording_folder_subtitle, state.recordingsFolderName),
+                            onClick = { recordingsFolderLauncher.launch(null) }
+                        )
+                    }
+
+                    item {
+                        PreferenceCard(
+                            icon = Icons.Outlined.Refresh,
+                            title = stringResource(R.string.settings_reset_recording_folder_title),
+                            subtitle = stringResource(R.string.settings_reset_recording_folder_subtitle),
+                            onClick = viewModel::clearRecordingFolderSelection
                         )
                     }
                 }
 
-                item {
-                    PreferenceCard(
-                        icon = Icons.Outlined.Phone,
-                        title = "Provider name",
-                        subtitle = "Shown in Calling Accounts",
-                        onClick = null,
-                        contentColor = MaterialTheme.colorScheme.onSurface
-                    ) {
-                        ExpressiveTextField(
-                            value = state.providerName,
-                            onValueChange = viewModel::onProviderNameChange,
-                            label = "Provider name",
-                            modifier = Modifier.fillMaxWidth()
+                if (submenu == SettingsSubmenu.MAIN) {
+                    item {
+                        PreferenceCategoryHeader(stringResource(R.string.settings_category_automation))
+                    }
+                    item {
+                        PreferenceCard(
+                            icon = Icons.Outlined.AccessTime,
+                            title = stringResource(R.string.settings_automation_title),
+                            subtitle = stringResource(R.string.settings_automation_hub_subtitle),
+                            onClick = { activeSubmenu = SettingsSubmenu.AUTOMATION }
+                        )
+                    }
+                    item {
+                        PreferenceCategoryHeader(stringResource(R.string.settings_category_mailbox))
+                    }
+                    item {
+                        PreferenceCard(
+                            icon = Icons.Outlined.Folder,
+                            title = stringResource(R.string.settings_category_mailbox),
+                            subtitle = stringResource(R.string.settings_mailbox_hub_subtitle),
+                            onClick = { activeSubmenu = SettingsSubmenu.MAILBOX }
                         )
                     }
                 }
 
-                item {
-                    PreferenceCard(
-                        icon = Icons.Outlined.CheckCircle,
-                        title = "Save & register provider",
-                        subtitle = "Make this account available for incoming calls.",
-                        onClick = viewModel::saveProvider
-                    )
-                }
-
-                item {
-                    PreferenceCard(
-                        icon = Icons.Outlined.Settings,
-                        title = "Enable provider in system",
-                        subtitle = if (state.isProviderEnabled) {
-                            "Provider is enabled."
-                        } else {
-                            "Open Calling Accounts to enable it."
-                        },
-                        onClick = { openCallingAccounts(context, viewModel) }
-                    )
-                }
-
-                item {
-                    PreferenceCategoryHeader("Audio")
-                }
-
-                item {
-                    PreferenceCard(
-                        icon = Icons.Outlined.MusicNote,
-                        title = "Select audio file",
-                        subtitle = "Current: ${state.selectedAudioName.ifBlank { "Default" }}",
-                        onClick = { audioPickerLauncher.launch(arrayOf("audio/*")) }
-                    )
-                }
-
-                item {
-                    PreferenceCard(
-                        icon = Icons.Outlined.VolumeOff,
-                        title = "Use default audio",
-                        subtitle = "Disable custom audio playback.",
-                        onClick = viewModel::clearAudioSelection
-                    )
-                }
-
-                item {
-                    PreferenceCard(
-                        icon = Icons.Outlined.Mic,
-                        title = "Microphone recording",
-                        subtitle = if (state.isRecordingEnabled) "Enabled" else "Disabled",
-                        onClick = null,
-                        trailingContent = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Switch(
-                                    checked = state.isRecordingEnabled,
-                                    onCheckedChange = viewModel::onRecordingEnabledChange
+                if (submenu == SettingsSubmenu.AUTOMATION) {
+                    item {
+                        PreferenceCategoryHeader(stringResource(R.string.settings_category_automation))
+                    }
+                    item {
+                        PreferenceCard(
+                            icon = Icons.Outlined.AccessTime,
+                            title = stringResource(R.string.settings_automation_defaults_title),
+                            subtitle = stringResource(R.string.settings_automation_subtitle),
+                            onClick = null,
+                            trailingContent = null
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                ExpressiveTextField(
+                                    value = state.quickTriggerCallerName,
+                                    onValueChange = viewModel::onQuickTriggerCallerNameChange,
+                                    label = stringResource(R.string.settings_default_caller_name_label),
+                                    modifier = Modifier.fillMaxWidth()
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                androidx.compose.material3.Icon(
-                                    imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                ExpressiveTextField(
+                                    value = state.quickTriggerCallerNumber,
+                                    onValueChange = viewModel::onQuickTriggerCallerNumberChange,
+                                    label = stringResource(R.string.settings_default_caller_number_label),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Box(modifier = Modifier.fillMaxWidth()) {
+                                    androidx.compose.material3.OutlinedTextField(
+                                        value = FakeCallViewModel.formatDelay(context, state.quickTriggerDelaySeconds),
+                                        onValueChange = {},
+                                        readOnly = true,
+                                        label = { Text(stringResource(R.string.settings_default_delay_label)) },
+                                        trailingIcon = {
+                                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = quickTriggerDelayExpanded)
+                                        },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(24.dp)
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .matchParentSize()
+                                            .clickable(
+                                                interactionSource = remember { MutableInteractionSource() },
+                                                indication = null
+                                            ) {
+                                                quickTriggerDelayExpanded = !quickTriggerDelayExpanded
+                                            }
+                                    )
+                                    DropdownMenu(
+                                        expanded = quickTriggerDelayExpanded,
+                                        onDismissRequest = { quickTriggerDelayExpanded = false }
+                                    ) {
+                                        viewModel.delayOptionsSeconds.forEach { delaySeconds ->
+                                            DropdownMenuItem(
+                                                text = { Text(FakeCallViewModel.formatDelay(context, delaySeconds)) },
+                                                onClick = {
+                                                    viewModel.onQuickTriggerDelayChange(delaySeconds)
+                                                    quickTriggerDelayExpanded = false
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                                Text(
+                                    text = stringResource(R.string.settings_quick_triggers_audio_note),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
-                    )
-                }
-
-                item {
-                    PreferenceCategoryHeader("Storage")
-                }
-
-                item {
-                    PreferenceCard(
-                        icon = Icons.Outlined.Folder,
-                        title = "Recording folder",
-                        subtitle = "Save to: ${state.recordingsFolderName}",
-                        onClick = { recordingsFolderLauncher.launch(null) }
-                    )
-                }
-
-                item {
-                    PreferenceCard(
-                        icon = Icons.Outlined.Refresh,
-                        title = "Reset recording folder",
-                        subtitle = "Use Downloads/FakeCall",
-                        onClick = viewModel::clearRecordingFolderSelection
-                    )
-                }
-
-                item {
-                    PreferenceCategoryHeader("Mailbox (IVR)")
-                }
-
-                item {
-                    PreferenceCard(
-                        icon = Icons.Outlined.Folder,
-                        title = "Import mailbox XML",
-                        subtitle = "Load a saved IVR tree.",
-                        onClick = { ivrImportLauncher.launch(arrayOf("text/xml", "application/xml")) }
-                    )
-                }
-
-                item {
-                    PreferenceCard(
-                        icon = Icons.Outlined.Refresh,
-                        title = "Export mailbox XML",
-                        subtitle = "Share your current IVR tree.",
-                        onClick = { ivrExportLauncher.launch("fakecall_mailbox.xml") }
-                    )
-                }
-
-                item {
-                    PreferenceCard(
-                        icon = Icons.Outlined.Add,
-                        title = "Add menu node",
-                        subtitle = "Create a new IVR menu.",
-                        onClick = { showAddNodeDialog = true }
-                    )
-                }
-
-                if (ivrNodes.isEmpty()) {
+                    }
                     item {
-                        Text(
-                            text = "No mailbox nodes yet.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        PreferenceCard(
+                            icon = Icons.Outlined.Settings,
+                            title = stringResource(R.string.settings_open_accessibility_settings),
+                            subtitle = stringResource(R.string.settings_accessibility_note),
+                            onClick = { openAccessibilitySettings(context) }
                         )
                     }
-                } else {
-                    items(ivrNodes) { node ->
-                        MailboxNodeCard(
-                            node = node,
-                            nodes = ivrNodes,
-                            isRoot = ivrConfig?.rootId == node.id,
-                            onSetRoot = { viewModel.setIvrRoot(node.id) },
-                            onSelectAudio = {
-                                pendingAudioNodeId = node.id
-                                ivrAudioPicker.launch(arrayOf("audio/*"))
-                            },
-                            onClearAudio = { viewModel.clearIvrNodeAudio(node.id) },
-                            onAddMapping = { mappingNodeId = node.id },
-                            onRemoveMapping = { digit -> viewModel.removeIvrRoute(node.id, digit) },
-                            onDelete = { viewModel.removeIvrNode(node.id) }
+                    item {
+                        PreferenceCard(
+                            icon = Icons.Outlined.Star,
+                            title = stringResource(R.string.label_saved_presets),
+                            subtitle = stringResource(R.string.settings_presets_note),
+                            onClick = null,
+                            trailingContent = null
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                ExpressiveTextField(
+                                    value = state.quickTriggerPresetName,
+                                    onValueChange = viewModel::onQuickTriggerPresetNameChange,
+                                    label = stringResource(R.string.settings_preset_name_label),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                FilledTonalButton(
+                                    onClick = viewModel::saveQuickTriggerPreset,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .bounceClick(enabled = state.quickTriggerPresets.size < QuickTriggerManager.MAX_PRESETS),
+                                    enabled = state.quickTriggerPresets.size < QuickTriggerManager.MAX_PRESETS
+                                ) {
+                                    Text(
+                                        stringResource(
+                                            R.string.settings_save_preset_button,
+                                            state.quickTriggerPresets.size,
+                                            QuickTriggerManager.MAX_PRESETS
+                                        )
+                                    )
+                                }
+                                if (state.quickTriggerPresets.isEmpty()) {
+                                    Text(
+                                        text = stringResource(R.string.settings_no_quick_trigger_presets),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                } else {
+                                    state.quickTriggerPresets.forEachIndexed { index, preset ->
+                                        Surface(
+                                            color = MaterialTheme.colorScheme.surfaceContainer,
+                                            shape = RoundedCornerShape(22.dp),
+                                            tonalElevation = 1.dp
+                                        ) {
+                                            Column(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(12.dp),
+                                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Text(
+                                                    text = stringResource(
+                                                        R.string.settings_preset_entry_title,
+                                                        index + 1,
+                                                        preset.title
+                                                    ),
+                                                    style = MaterialTheme.typography.titleSmall,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                                Text(
+                                                    text = "${preset.callerName.ifBlank { stringResource(R.string.settings_preset_unknown_caller) }} • ${preset.callerNumber} • ${FakeCallViewModel.formatDelay(context, preset.delaySeconds)}",
+                                                    style = MaterialTheme.typography.labelLarge,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    TextButton(
+                                                        onClick = { viewModel.applyQuickTriggerPreset(index + 1) },
+                                                        modifier = Modifier.bounceClick()
+                                                    ) {
+                                                        Text(stringResource(R.string.settings_apply_to_defaults))
+                                                    }
+                                                    TextButton(
+                                                        onClick = { viewModel.removeQuickTriggerPreset(index + 1) },
+                                                        modifier = Modifier.bounceClick()
+                                                    ) {
+                                                        Text(stringResource(R.string.action_remove))
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    item {
+                        PreferenceCard(
+                            icon = Icons.Default.Code,
+                            title = stringResource(R.string.settings_automation_api_title),
+                            subtitle = stringResource(R.string.settings_automation_action_note),
+                            onClick = null,
+                            trailingContent = null
                         )
+                    }
+                }
+
+                if (submenu == SettingsSubmenu.MAILBOX) {
+                    item {
+                        PreferenceCategoryHeader(stringResource(R.string.settings_category_mailbox))
+                    }
+                    item {
+                        PreferenceCard(
+                            icon = Icons.Outlined.Folder,
+                            title = stringResource(R.string.settings_import_mailbox_title),
+                            subtitle = stringResource(R.string.settings_import_mailbox_subtitle),
+                            onClick = { ivrImportLauncher.launch(arrayOf("text/xml", "application/xml")) }
+                        )
+                    }
+                    item {
+                        PreferenceCard(
+                            icon = Icons.Outlined.Refresh,
+                            title = stringResource(R.string.settings_export_mailbox_title),
+                            subtitle = stringResource(R.string.settings_export_mailbox_subtitle),
+                            onClick = { ivrExportLauncher.launch("fakecall_mailbox.xml") }
+                        )
+                    }
+                    item {
+                        PreferenceCard(
+                            icon = Icons.Outlined.Add,
+                            title = stringResource(R.string.settings_add_node_title),
+                            subtitle = stringResource(R.string.settings_add_node_subtitle),
+                            onClick = { showAddNodeDialog = true }
+                        )
+                    }
+
+                    if (ivrNodes.isEmpty()) {
+                        item {
+                            Text(
+                                text = stringResource(R.string.settings_no_mailbox_nodes),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+                        }
+                    } else {
+                        items(ivrNodes) { node ->
+                            MailboxNodeCard(
+                                node = node,
+                                nodes = ivrNodes,
+                                isRoot = ivrConfig?.rootId == node.id,
+                                onSetRoot = { viewModel.setIvrRoot(node.id) },
+                                onSelectAudio = {
+                                    pendingAudioNodeId = node.id
+                                    ivrAudioPicker.launch(arrayOf("audio/*"))
+                                },
+                                onClearAudio = { viewModel.clearIvrNodeAudio(node.id) },
+                                onAddMapping = { mappingNodeId = node.id },
+                                onRemoveMapping = { digit -> viewModel.removeIvrRoute(node.id, digit) },
+                                onDelete = { viewModel.removeIvrNode(node.id) }
+                            )
+                        }
                     }
                 }
 
@@ -390,106 +683,108 @@ fun SettingsScreen(
                     }
                 }
 
-                item {
-                    ElevatedCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(32.dp),
-                        colors = CardDefaults.elevatedCardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                        ),
-                        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                if (submenu == SettingsSubmenu.MAIN) {
+                    item {
+                        ElevatedCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(32.dp),
+                            colors = CardDefaults.elevatedCardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                            ),
+                            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
                         ) {
-                            Text(
-                                text = "About & Updates",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "Current Version: ${BuildConfig.VERSION_NAME}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Surface(
-                                shape = RoundedCornerShape(22.dp),
-                                color = MaterialTheme.colorScheme.surfaceContainer
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .bounceClick(onClick = { openUrl(context, GITHUB_REPO_URL) })
-                                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Code,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = "GitHub Repository",
-                                            style = MaterialTheme.typography.titleSmall,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Text(
-                                            text = "DDOneApps/FakeCall",
-                                            style = MaterialTheme.typography.labelLarge,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                    androidx.compose.material3.Icon(
-                                        imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-
-                            FilledTonalButton(
-                                onClick = {
-                                    if (isCheckingUpdates) return@FilledTonalButton
-                                    coroutineScope.launch {
-                                        isCheckingUpdates = true
-                                        when (val result = viewModel.checkForUpdatesManual()) {
-                                            is UpdateCheckResult.UpdateAvailable -> {
-                                                updateDialogRelease = result.release
-                                            }
-                                            UpdateCheckResult.UpToDate -> {
-                                                snackbarHostState.showSnackbar("You are on the latest version.")
-                                            }
-                                            UpdateCheckResult.RateLimited -> {
-                                                snackbarHostState.showSnackbar("GitHub rate limit reached. Try again later.")
-                                            }
-                                            UpdateCheckResult.Unavailable -> {
-                                                snackbarHostState.showSnackbar("Couldn't check for updates right now.")
-                                            }
-                                        }
-                                        isCheckingUpdates = false
-                                    }
-                                },
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .bounceClick(enabled = !isCheckingUpdates)
+                                    .padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(14.dp)
                             ) {
-                                if (isCheckingUpdates) {
-                                    CircularProgressIndicator(
+                                Text(
+                                    text = stringResource(R.string.settings_about_title),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = stringResource(R.string.settings_current_version, BuildConfig.VERSION_NAME),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Surface(
+                                    shape = RoundedCornerShape(22.dp),
+                                    color = MaterialTheme.colorScheme.surfaceContainer
+                                ) {
+                                    Row(
                                         modifier = Modifier
-                                            .width(18.dp)
-                                            .height(18.dp),
-                                        strokeWidth = 2.dp,
-                                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                                    )
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Text("Checking...")
-                                } else {
-                                    Text("Check for Updates")
+                                            .fillMaxWidth()
+                                            .bounceClick(onClick = { openUrl(context, GITHUB_REPO_URL) })
+                                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Code,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = stringResource(R.string.settings_github_repo),
+                                                style = MaterialTheme.typography.titleSmall,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                            Text(
+                                                text = stringResource(R.string.settings_github_repo_name),
+                                                style = MaterialTheme.typography.labelLarge,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                        androidx.compose.material3.Icon(
+                                            imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+
+                                FilledTonalButton(
+                                    onClick = {
+                                        if (isCheckingUpdates) return@FilledTonalButton
+                                        coroutineScope.launch {
+                                            isCheckingUpdates = true
+                                            when (val result = viewModel.checkForUpdatesManual()) {
+                                                is UpdateCheckResult.UpdateAvailable -> {
+                                                    updateDialogRelease = result.release
+                                                }
+                                                UpdateCheckResult.UpToDate -> {
+                                                    snackbarHostState.showSnackbar(context.getString(R.string.snackbar_up_to_date))
+                                                }
+                                                UpdateCheckResult.RateLimited -> {
+                                                    snackbarHostState.showSnackbar(context.getString(R.string.snackbar_rate_limited))
+                                                }
+                                                UpdateCheckResult.Unavailable -> {
+                                                    snackbarHostState.showSnackbar(context.getString(R.string.snackbar_update_unavailable))
+                                                }
+                                            }
+                                            isCheckingUpdates = false
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .bounceClick(enabled = !isCheckingUpdates)
+                                ) {
+                                    if (isCheckingUpdates) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier
+                                                .width(18.dp)
+                                                .height(18.dp),
+                                            strokeWidth = 2.dp,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                                        )
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Text(stringResource(R.string.settings_checking_updates))
+                                    } else {
+                                        Text(stringResource(R.string.settings_check_for_updates))
+                                    }
                                 }
                             }
                         }
@@ -501,6 +796,7 @@ fun SettingsScreen(
                 }
             }
         }
+    }
     }
 
     if (showAddNodeDialog) {
@@ -530,9 +826,9 @@ fun SettingsScreen(
     if (release != null) {
         AlertDialog(
             onDismissRequest = { updateDialogRelease = null },
-            title = { Text("Update Available") },
+            title = { Text(stringResource(R.string.dialog_update_available_title)) },
             text = {
-                Text("Version ${release.tagName} is available on GitHub Releases.")
+                Text(stringResource(R.string.dialog_update_available_text, release.tagName))
             },
             confirmButton = {
                 Button(
@@ -542,7 +838,7 @@ fun SettingsScreen(
                     },
                     modifier = Modifier.bounceClick()
                 ) {
-                    Text("Update Now")
+                    Text(stringResource(R.string.action_update_now))
                 }
             },
             dismissButton = {
@@ -550,11 +846,17 @@ fun SettingsScreen(
                     onClick = { updateDialogRelease = null },
                     modifier = Modifier.bounceClick()
                 ) {
-                    Text("Later")
+                    Text(stringResource(R.string.action_later))
                 }
             }
         )
     }
+}
+
+private enum class SettingsSubmenu {
+    MAIN,
+    AUTOMATION,
+    MAILBOX
 }
 
 @Composable
@@ -672,48 +974,48 @@ private fun MailboxNodeCard(
                     if (isRoot) {
                         androidx.compose.material3.AssistChip(
                             onClick = {},
-                            label = { Text("Root menu") },
+                            label = { Text(stringResource(R.string.settings_root_menu)) },
                             leadingIcon = { androidx.compose.material3.Icon(Icons.Outlined.Star, contentDescription = null) }
                         )
                     } else {
                         TextButton(onClick = onSetRoot, modifier = Modifier.bounceClick()) {
                             androidx.compose.material3.Icon(Icons.Outlined.StarBorder, contentDescription = null)
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Set as root")
+                            Text(stringResource(R.string.settings_set_as_root))
                         }
                     }
                 }
                 androidx.compose.material3.IconButton(onClick = onDelete, modifier = Modifier.bounceClick()) {
-                    androidx.compose.material3.Icon(Icons.Outlined.Delete, contentDescription = "Delete node")
+                    androidx.compose.material3.Icon(Icons.Outlined.Delete, contentDescription = stringResource(R.string.cd_delete_node))
                 }
             }
 
             PreferenceCard(
                 icon = Icons.Outlined.MusicNote,
-                title = "Node audio",
-                subtitle = node.audioLabel.ifBlank { "No audio selected" },
+                title = stringResource(R.string.settings_node_audio_title),
+                subtitle = node.audioLabel.ifBlank { stringResource(R.string.settings_no_audio_selected) },
                 onClick = null,
                 trailingContent = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         androidx.compose.material3.IconButton(onClick = onSelectAudio, modifier = Modifier.bounceClick()) {
-                            androidx.compose.material3.Icon(Icons.Outlined.Folder, contentDescription = "Select audio")
+                            androidx.compose.material3.Icon(Icons.Outlined.Folder, contentDescription = stringResource(R.string.cd_select_audio))
                         }
                         androidx.compose.material3.IconButton(onClick = onClearAudio, modifier = Modifier.bounceClick()) {
-                            androidx.compose.material3.Icon(Icons.Outlined.Close, contentDescription = "Clear audio")
+                            androidx.compose.material3.Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.cd_clear_audio))
                         }
                     }
                 }
             )
 
             Text(
-                text = "Digit mappings (0 = back)",
+                text = stringResource(R.string.settings_digit_mappings),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             if (node.routes.isEmpty()) {
                 Text(
-                    text = "No mappings yet.",
+                    text = stringResource(R.string.settings_no_mappings),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -722,18 +1024,19 @@ private fun MailboxNodeCard(
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    val unknownLabel = stringResource(R.string.label_unknown)
                     node.routes.toSortedMap().forEach { (digit, target) ->
-                        val title = nodes.firstOrNull { it.id == target }?.title ?: "Unknown"
+                        val title = nodes.firstOrNull { it.id == target }?.title ?: unknownLabel
                         androidx.compose.material3.InputChip(
                             selected = false,
                             onClick = {},
-                            label = { Text("$digit → $title") },
+                            label = { Text(stringResource(R.string.settings_mapping_chip_label, digit.toString(), title)) },
                             trailingIcon = {
                                 androidx.compose.material3.IconButton(
                                     onClick = { onRemoveMapping(digit) },
                                     modifier = Modifier.bounceClick()
                                 ) {
-                                    androidx.compose.material3.Icon(Icons.Outlined.Close, contentDescription = "Remove mapping")
+                                    androidx.compose.material3.Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.cd_remove_mapping))
                                 }
                             },
                             shape = RoundedCornerShape(999.dp)
@@ -745,7 +1048,7 @@ private fun MailboxNodeCard(
             Button(onClick = onAddMapping, modifier = Modifier.bounceClick()) {
                 androidx.compose.material3.Icon(Icons.Outlined.Add, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Add mapping")
+                Text(stringResource(R.string.action_add_mapping))
             }
         }
     }
@@ -760,23 +1063,23 @@ private fun AddNodeDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("New mailbox node") },
+        title = { Text(stringResource(R.string.dialog_new_node_title)) },
         text = {
             ExpressiveTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = "Node title",
+                label = stringResource(R.string.dialog_node_title_label),
                 modifier = Modifier.fillMaxWidth()
             )
         },
         confirmButton = {
             Button(onClick = { onConfirm(name) }, modifier = Modifier.bounceClick()) {
-                Text("Create")
+                Text(stringResource(R.string.action_create))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss, modifier = Modifier.bounceClick()) {
-                Text("Cancel")
+                Text(stringResource(R.string.action_cancel))
             }
         }
     )
@@ -801,7 +1104,7 @@ private fun MappingDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add mapping") },
+        title = { Text(stringResource(R.string.dialog_add_mapping_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Box(modifier = Modifier.fillMaxWidth()) {
@@ -809,7 +1112,7 @@ private fun MappingDialog(
                         value = selectedDigit.toString(),
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Digit") },
+                        label = { Text(stringResource(R.string.dialog_digit_label)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = digitExpanded) },
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -842,7 +1145,7 @@ private fun MappingDialog(
                         value = availableTargets.firstOrNull { it.id == selectedTargetId }?.title.orEmpty(),
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Target node") },
+                        label = { Text(stringResource(R.string.dialog_target_node_label)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = targetExpanded) },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = availableTargets.isNotEmpty()
@@ -874,7 +1177,7 @@ private fun MappingDialog(
 
                 if (availableTargets.isEmpty()) {
                     Text(
-                        text = "Add another node to create mappings.",
+                        text = stringResource(R.string.dialog_add_another_node),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -887,12 +1190,12 @@ private fun MappingDialog(
                 enabled = canConfirm,
                 modifier = Modifier.bounceClick(enabled = canConfirm)
             ) {
-                Text("Add")
+                Text(stringResource(R.string.action_add))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss, modifier = Modifier.bounceClick()) {
-                Text("Cancel")
+                Text(stringResource(R.string.action_cancel))
             }
         }
     )
@@ -900,6 +1203,17 @@ private fun MappingDialog(
 
 private fun openCallingAccounts(context: Context, viewModel: FakeCallViewModel) {
     val intent = viewModel.openCallingAccountsIntent()
+    runCatching {
+        context.startActivity(intent)
+    }.onFailure {
+        if (it is ActivityNotFoundException) {
+            // Ignore silently on unsupported devices.
+        }
+    }
+}
+
+private fun openAccessibilitySettings(context: Context) {
+    val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
     runCatching {
         context.startActivity(intent)
     }.onFailure {

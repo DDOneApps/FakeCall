@@ -7,9 +7,10 @@
 <p>
 
 [![GitHub stars](https://img.shields.io/github/stars/DDOneApps/FakeCall?style=for-the-badge)](https://github.com/DDOneApps/FakeCall/stargazers) [![GitHub forks](https://img.shields.io/github/forks/DDOneApps/FakeCall?style=for-the-badge)](https://github.com/DDOneApps/FakeCall/network) [![GitHub issues](https://img.shields.io/github/issues/DDOneApps/FakeCall?style=for-the-badge)](https://github.com/DDOneApps/FakeCall/issues)
+[![Downloads](https://img.shields.io/github/downloads/DDOneApps/FakeCall/total?color=green&style=for-the-badge)](https://github.com/DDOneApps/FakeCall/releases/latest) 
+[![Crowdin](https://img.shields.io/badge/dynamic/json?color=red&label=translation&query=$.message&style=for-the-badge&url=https://raw.githubusercontent.com/DDOneApps/FakeCall/main/badge.json&logo=crowdin)](https://crowdin.com/project/fakecall)
 
-[![GitHub license](https://img.shields.io/badge/license-GPL%20v3-red?style=for-the-badge)](LICENSE) <!-- TODO: Add a LICENSE file and update badge -->
-
+[![GitHub license](https://img.shields.io/badge/license-GPL%20v3-red?style=for-the-badge)](LICENSE)
 </p>
 
 **An open-source Android application to simulate incoming calls, featuring a modern Material 3 UI with dynamic Monet support.**
@@ -34,6 +35,60 @@ Introducing FakeCall. Unlike other apps that merely mock a UI, this app integrat
 -  **Call History:** Simulated calls are being shown in call history
 -  **IVR Mode:** assign audio files to keys and make sub-menus
 -  **Recording:** record microphone audio of a Fake call
+-  **Automation API:** trigger calls from Tasker, MacroDroid, or ADB via a broadcast intent
+-  **Accessibility Shortcut:** schedule a fake call from the system accessibility button using saved defaults
+-  **Quick Trigger Presets:** save up to 5 presets and expose them as launcher app actions + Quick Settings tiles
+
+## Automation API
+
+FakeCall exposes a broadcast receiver for automation apps.
+
+**Action**
+
+`com.upnp.fakeCall.TRIGGER`
+
+**Extras**
+
+- `caller_name` (`String`, optional)
+- `caller_number` (`String`, optional)
+- `delay` (`Int`, optional, seconds)
+
+If one or more extras are omitted, FakeCall falls back to the saved **Automation & Quick Trigger Defaults** from Settings.
+
+**ADB example (recommended, package-targeted, no `-n` needed)**
+
+```bash
+adb shell am broadcast -a com.upnp.fakeCall.TRIGGER -p com.upnp.fakeCall --es caller_name "Boss" --es caller_number "+49123456789" --ei delay 30
+```
+
+**Windows `cmd.exe` (single line)**
+
+```cmd
+adb shell am broadcast -a com.upnp.fakeCall.TRIGGER -p com.upnp.fakeCall --es caller_name "Boss" --es caller_number "+49123456789" --ei delay 30
+```
+
+**Explicit component fallback**
+
+```bash
+adb shell am broadcast -n com.upnp.fakeCall/.ExternalTriggerReceiver -a com.upnp.fakeCall.TRIGGER --es caller_name "Boss" --es caller_number "+49123456789" --ei delay 30
+```
+
+For Tasker, MacroDroid, etc. set:
+- Action: `com.upnp.fakeCall.TRIGGER`
+- Package: `com.upnp.fakeCall`
+
+## Accessibility Quick Trigger
+
+Enable the `FakeCall` accessibility service and assign it to the system accessibility button or shortcut. When invoked, it schedules a fake call using the saved quick-trigger defaults from Settings and shows a short confirmation toast.
+
+You can configure these defaults inside:
+
+`Settings -> Automation & Quick Trigger Defaults`
+
+You can also save up to five quick trigger presets from the same section:
+
+- presets appear as launcher app actions (long-press the app icon)
+- presets are available as Quick Settings tiles (`FakeCall Preset 1` ... `FakeCall Preset 5`)
 
 ## Screenshots
 
@@ -100,7 +155,7 @@ FakeCall/
 
 We welcome contributions to FakeCall!
 
-
+If you want to help translating, do it [Here](https://crowdin.com/project/fakecall/invite?h=ad1b7ff358ecf52e9f823b4f7f691f1d2725120) via crowdin
 ## License
 
 This Project is licenced under GNU General Public License.

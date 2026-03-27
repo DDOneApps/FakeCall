@@ -53,7 +53,7 @@ class FakeCallSchedulerService : Service() {
                 scheduleJob?.cancel()
                 scheduleJob = serviceScope.launch {
                     val telecomHelper = TelecomHelper(applicationContext)
-                    telecomHelper.registerOrUpdatePhoneAccount(providerName.ifBlank { DEFAULT_PROVIDER_NAME })
+                    telecomHelper.registerOrUpdatePhoneAccount(providerName.ifBlank { getString(R.string.default_provider_name) })
                     delay(delaySeconds * 1_000L)
                     if (telecomHelper.isAccountEnabled()) {
                         telecomHelper.triggerIncomingCall(callerName, callerNumber)
@@ -83,8 +83,16 @@ class FakeCallSchedulerService : Service() {
     private fun buildNotification(delaySeconds: Int, callerName: String, callerNumber: String): Notification {
         createNotificationChannel()
 
-        val contentTitle = if (callerName.isBlank()) "Fake call scheduled" else "Fake call: $callerName"
-        val contentText = "Incoming call in $delaySeconds seconds from ${callerNumber.ifBlank { "Unknown" }}"
+        val contentTitle = if (callerName.isBlank()) {
+            getString(R.string.notification_scheduled_title_no_name)
+        } else {
+            getString(R.string.notification_scheduled_title_with_name, callerName)
+        }
+        val contentText = getString(
+            R.string.notification_scheduled_text,
+            delaySeconds,
+            callerNumber.ifBlank { getString(R.string.notification_unknown_caller) }
+        )
 
         val launchIntent = Intent(this, MainActivity::class.java)
         val contentIntent = PendingIntent.getActivity(
@@ -111,7 +119,7 @@ class FakeCallSchedulerService : Service() {
 
         val channel = NotificationChannel(
             CHANNEL_ID,
-            "Fake Call Scheduler",
+            getString(R.string.notification_channel_scheduler),
             NotificationManager.IMPORTANCE_LOW
         )
         manager.createNotificationChannel(channel)
@@ -127,8 +135,6 @@ class FakeCallSchedulerService : Service() {
         private const val EXTRA_CALLER_NAME = "extra_caller_name"
         private const val EXTRA_CALLER_NUMBER = "extra_caller_number"
         private const val EXTRA_PROVIDER_NAME = "extra_provider_name"
-
-        private const val DEFAULT_PROVIDER_NAME = "Fake Call Provider"
 
         fun start(
             context: Context,

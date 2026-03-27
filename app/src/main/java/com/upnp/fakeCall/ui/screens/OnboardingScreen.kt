@@ -41,11 +41,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.upnp.fakeCall.FakeCallViewModel
+import com.upnp.fakeCall.R
 import com.upnp.fakeCall.ui.components.AnimatedIcon
 import com.upnp.fakeCall.ui.components.ExpressiveButton
 import com.upnp.fakeCall.ui.components.ExpressiveCardShape
@@ -97,13 +99,13 @@ fun OnboardingScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "Welcome to FakeCall",
+                        text = stringResource(R.string.onboarding_title),
                         style = MaterialTheme.typography.displayMedium,
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "A premium fake call experience with expressive motion and instant scheduling.",
+                        text = stringResource(R.string.onboarding_subtitle),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -116,11 +118,11 @@ fun OnboardingScreen(
 
             item {
                 PermissionCard(
-                    title = "Phone + Microphone permissions",
-                    subtitle = "Required to simulate calls and record audio.",
+                    title = stringResource(R.string.permission_mic_title),
+                    subtitle = stringResource(R.string.permission_mic_subtitle),
                     icon = Icons.Outlined.Mic,
                     isReady = permissionsReady,
-                    actionLabel = "Grant permissions",
+                    actionLabel = stringResource(R.string.permission_mic_action),
                     onAction = {
                         haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                         onRequestPermissions()
@@ -130,11 +132,11 @@ fun OnboardingScreen(
 
             item {
                 PermissionCard(
-                    title = "Make & manage phone calls",
-                    subtitle = "Enable FakeCall in system Calling Accounts.",
+                    title = stringResource(R.string.permission_phone_title),
+                    subtitle = stringResource(R.string.permission_phone_subtitle),
                     icon = Icons.Outlined.Phone,
                     isReady = callingAccountReady,
-                    actionLabel = "Open calling accounts",
+                    actionLabel = stringResource(R.string.permission_phone_action),
                     onAction = {
                         haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                         val intent = viewModel.openCallingAccountsIntent()
@@ -145,11 +147,11 @@ fun OnboardingScreen(
 
             item {
                 PermissionCard(
-                    title = "Precise alarms & reminders",
-                    subtitle = "Needed for exact-time calls on Android 12+.",
+                    title = stringResource(R.string.permission_alarms_title),
+                    subtitle = stringResource(R.string.permission_alarms_subtitle),
                     icon = Icons.Outlined.AccessTime,
                     isReady = exactAlarmsReady,
-                    actionLabel = "Enable precise alarms",
+                    actionLabel = stringResource(R.string.permission_alarms_action),
                     onAction = {
                         haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                         val intent = viewModel.openExactAlarmSettingsIntent()
@@ -183,11 +185,11 @@ fun OnboardingScreen(
                             )
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Can’t open Calling Accounts settings?",
+                                    text = stringResource(R.string.onboarding_calling_accounts_help_title),
                                     style = MaterialTheme.typography.titleMedium
                                 )
                                 Text(
-                                    text = "Some OnePlus/Oppo/Realme/Samsung builds hide the screen. You can open it directly via ADB:",
+                                    text = stringResource(R.string.onboarding_calling_accounts_help_subtitle),
                                     style = MaterialTheme.typography.labelLarge,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -199,7 +201,7 @@ fun OnboardingScreen(
                             tonalElevation = 1.dp
                         ) {
                             Text(
-                                text = "adb shell am start -a android.intent.action.MAIN -n com.android.server.telecom/.settings.EnableAccountPreferenceActivity",
+                                text = stringResource(R.string.onboarding_adb_command),
                                 style = MaterialTheme.typography.labelLarge,
                                 fontFamily = FontFamily.Monospace,
                                 color = MaterialTheme.colorScheme.onSurface,
@@ -236,7 +238,7 @@ fun OnboardingScreen(
                                 tint = MaterialTheme.colorScheme.onPrimary
                             )
                             Text(
-                                text = "All set! You’re ready to schedule your first fake call.",
+                                text = stringResource(R.string.onboarding_all_set),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
@@ -247,7 +249,7 @@ fun OnboardingScreen(
 
             item {
                 ExpressiveButton(
-                    label = if (canFinish) "Finish setup" else "Finish setup (needs permissions)",
+                    label = if (canFinish) stringResource(R.string.onboarding_finish_setup) else stringResource(R.string.onboarding_finish_setup_needs_permissions),
                     onClick = {
                         viewModel.completeOnboarding()
                         onFinish()
@@ -282,24 +284,24 @@ private fun FeatureCard() {
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Text(
-                text = "Main features",
+                text = stringResource(R.string.onboarding_features_title),
                 style = MaterialTheme.typography.displaySmall,
                 color = MaterialTheme.colorScheme.onSurface
             )
             FeatureRow(
                 icon = Icons.Outlined.Phone,
-                title = "Realistic incoming calls",
-                subtitle = "Expressive call screens with smart scheduling."
+                title = stringResource(R.string.feature_realistic_calls_title),
+                subtitle = stringResource(R.string.feature_realistic_calls_subtitle)
             )
             FeatureRow(
                 icon = Icons.Outlined.AccessTime,
-                title = "Quick presets + exact time",
-                subtitle = "Schedule instantly or pick a precise time."
+                title = stringResource(R.string.feature_quick_presets_title),
+                subtitle = stringResource(R.string.feature_quick_presets_subtitle)
             )
             FeatureRow(
                 icon = Icons.Outlined.Settings,
-                title = "Audio + IVR routing",
-                subtitle = "Play custom audio and route with keypad tones."
+                title = stringResource(R.string.feature_audio_ivr_title),
+                subtitle = stringResource(R.string.feature_audio_ivr_subtitle)
             )
         }
     }
@@ -390,7 +392,7 @@ private fun PermissionCard(
                 )
             }
             ExpressiveButton(
-                label = if (isReady) "Completed" else actionLabel,
+                label = if (isReady) stringResource(R.string.permission_completed) else actionLabel,
                 onClick = onAction,
                 enabled = !isReady,
                 containerColor = MaterialTheme.colorScheme.primaryContainer,

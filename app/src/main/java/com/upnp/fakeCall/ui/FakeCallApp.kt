@@ -30,14 +30,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.res.stringResource
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,6 +55,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.upnp.fakeCall.FakeCallViewModel
+import com.upnp.fakeCall.R
 import com.upnp.fakeCall.ReleaseInfo
 import com.upnp.fakeCall.ui.screens.DashboardScreen
 import com.upnp.fakeCall.ui.screens.OnboardingScreen
@@ -68,7 +72,10 @@ private val RequiredPermissions = arrayOf(
 )
 
 @Composable
-fun FakeCallApp(viewModel: FakeCallViewModel = viewModel()) {
+fun FakeCallApp(
+    viewModel: FakeCallViewModel = viewModel(),
+    startInSettings: Boolean = false
+) {
     val navController = rememberNavController()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = navController.context
@@ -103,7 +110,11 @@ fun FakeCallApp(viewModel: FakeCallViewModel = viewModel()) {
         Box(modifier = Modifier.fillMaxSize()) {
             NavHost(
                 navController = navController,
-                startDestination = if (state.isOnboardingComplete) ROUTE_DASHBOARD else ROUTE_ONBOARDING,
+                startDestination = when {
+                    startInSettings && state.isOnboardingComplete -> ROUTE_SETTINGS
+                    state.isOnboardingComplete -> ROUTE_DASHBOARD
+                    else -> ROUTE_ONBOARDING
+                },
                 modifier = Modifier.fillMaxSize(),
                 enterTransition = {
                     slideIntoContainer(
@@ -152,7 +163,14 @@ fun FakeCallApp(viewModel: FakeCallViewModel = viewModel()) {
                 composable(route = ROUTE_SETTINGS) {
                     SettingsScreen(
                         viewModel = viewModel,
-                        onBack = { navController.popBackStack() },
+                        onBack = {
+                            if (!navController.popBackStack()) {
+                                navController.navigate(ROUTE_DASHBOARD) {
+                                    popUpTo(ROUTE_SETTINGS) { inclusive = true }
+                                    launchSingleTop = true
+                                }
+                            }
+                        },
                         onRequestPermissions = { permissionLauncher.launch(RequiredPermissions) }
                     )
                 }
@@ -208,26 +226,32 @@ private fun UpdateBanner(
                 modifier = Modifier.size(34.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = "v",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                    Icon(
+                        imageVector = Icons.Outlined.Download,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onTertiaryContainer
                     )
                 }
             }
             Text(
-                text = "Update ${release.tagName} available!",
+                text = stringResource(R.string.update_available_banner, release.tagName),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onTertiaryContainer,
                 modifier = Modifier.weight(1f)
             )
-            TextButton(onClick = onDownload) {
-                Text("Download")
+            FilledTonalButton(
+                onClick = onDownload,
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                    contentColor = MaterialTheme.colorScheme.tertiaryContainer
+                )
+            ) {
+                Text(stringResource(R.string.action_download))
             }
             IconButton(onClick = onDismiss) {
                 Icon(
                     imageVector = Icons.Outlined.Close,
-                    contentDescription = "Dismiss update notice",
+                    contentDescription = stringResource(R.string.cd_dismiss_update),
                     tint = MaterialTheme.colorScheme.onTertiaryContainer
                 )
             }

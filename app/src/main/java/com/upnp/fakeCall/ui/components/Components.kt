@@ -12,6 +12,7 @@ import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -52,6 +53,8 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -65,6 +68,7 @@ import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.VolumeUp
 import com.upnp.fakeCall.CustomPreset
 import com.upnp.fakeCall.FakeCallViewModel
+import com.upnp.fakeCall.R
 
 fun <T> expressiveSpring() = spring<T>(
     dampingRatio = Spring.DampingRatioMediumBouncy,
@@ -206,6 +210,7 @@ fun ExpressiveButton(
     modifier: Modifier = Modifier,
     leadingIcon: ImageVector? = null,
     enabled: Boolean = true,
+    maxLines: Int = 2,
     containerColor: Color = MaterialTheme.colorScheme.primary,
     contentColor: Color = MaterialTheme.colorScheme.onPrimary,
     shape: Shape = RoundedCornerShape(24.dp)
@@ -237,7 +242,9 @@ fun ExpressiveButton(
             }
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelLarge
+                style = MaterialTheme.typography.labelLarge,
+                maxLines = maxLines,
+                textAlign = TextAlign.Center
             )
         }
     }
@@ -281,26 +288,26 @@ fun CallerInputCard(
     modifier: Modifier = Modifier
 ) {
     SectionCard(
-        title = "Caller Details",
+        title = stringResource(R.string.caller_details_title),
         modifier = modifier,
         shape = ExpressiveAsymmetricShape
     ) {
         ExpressiveTextField(
             value = callerName,
             onValueChange = onCallerNameChange,
-            label = "Caller name",
+            label = stringResource(R.string.label_caller_name),
             modifier = Modifier.fillMaxWidth(),
             imeAction = ImeAction.Next
         )
         ExpressiveTextField(
             value = callerNumber,
             onValueChange = onCallerNumberChange,
-            label = "Caller number",
+            label = stringResource(R.string.label_caller_number),
             modifier = Modifier.fillMaxWidth(),
             imeAction = ImeAction.Done
         )
         Text(
-            text = "Shown on the incoming call screen.",
+            text = stringResource(R.string.hint_shown_on_incoming_call),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -324,8 +331,9 @@ fun TimingSelectionCard(
     formatPreset: (CustomPreset) -> String,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     SectionCard(
-        title = "Timing",
+        title = stringResource(R.string.timing_title),
         modifier = modifier
     ) {
         Text(
@@ -351,7 +359,7 @@ fun TimingSelectionCard(
                     onClick = { onPresetSelected(option) },
                     shape = SegmentedButtonDefaults.itemShape(index = index, count = count),
                     modifier = Modifier.bounceClick(),
-                    label = { Text(FakeCallViewModel.formatDelay(option)) }
+                    label = { Text(FakeCallViewModel.formatDelay(context, option)) }
                 )
             }
         }
@@ -402,7 +410,7 @@ fun TimingSelectionCard(
 
         if (customPresets.isNotEmpty()) {
             Text(
-                text = "Saved presets",
+                text = stringResource(R.string.label_saved_presets),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -427,7 +435,7 @@ fun TimingSelectionCard(
                             Text(formatPreset(preset), style = MaterialTheme.typography.labelLarge)
                             AnimatedIcon(
                                 imageVector = Icons.Outlined.Close,
-                                contentDescription = "Remove preset",
+                                contentDescription = stringResource(R.string.cd_remove_preset),
                                 size = 28.dp,
                                 shape = CircleShape,
                                 backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -470,7 +478,7 @@ fun AudioPreviewCard(
     }
 
     SectionCard(
-        title = "Audio Preview",
+        title = stringResource(R.string.audio_preview_title),
         modifier = modifier
     ) {
         Row(
@@ -491,62 +499,118 @@ fun AudioPreviewCard(
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = "Tap to change or disable audio.",
+                    text = stringResource(R.string.audio_preview_hint),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            ExpressiveButton(
-                label = if (isPlaying) "Stop" else "Play",
-                onClick = {
-                    if (audioUri.isBlank()) return@ExpressiveButton
-                    if (isPlaying) {
-                        stopPlayback()
-                    } else {
-                        val uri = runCatching { Uri.parse(audioUri) }.getOrNull() ?: return@ExpressiveButton
-                        val newPlayer = MediaPlayer().apply {
-                            setDataSource(context, uri)
-                            prepare()
-                            start()
-                            setOnCompletionListener {
-                                isPlaying = false
-                                runCatching { release() }
-                                player = null
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val useVerticalButtons = maxWidth < 460.dp
+            if (useVerticalButtons) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    ExpressiveButton(
+                        label = if (isPlaying) stringResource(R.string.action_stop) else stringResource(R.string.action_play),
+                        onClick = {
+                            if (audioUri.isBlank()) return@ExpressiveButton
+                            if (isPlaying) {
+                                stopPlayback()
+                            } else {
+                                val uri = runCatching { Uri.parse(audioUri) }.getOrNull() ?: return@ExpressiveButton
+                                val newPlayer = MediaPlayer().apply {
+                                    setDataSource(context, uri)
+                                    prepare()
+                                    start()
+                                    setOnCompletionListener {
+                                        isPlaying = false
+                                        runCatching { release() }
+                                        player = null
+                                    }
+                                }
+                                player = newPlayer
+                                isPlaying = true
                             }
-                        }
-                        player = newPlayer
-                        isPlaying = true
-                    }
-                },
-                modifier = Modifier.weight(1f),
-                leadingIcon = if (isPlaying) Icons.Outlined.Stop else Icons.Outlined.PlayArrow,
-                enabled = audioUri.isNotBlank(),
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-            ExpressiveButton(
-                label = "Open settings",
-                onClick = onOpenSettings,
-                modifier = Modifier.weight(1f),
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-            )
-            ExpressiveButton(
-                label = "Clear audio",
-                onClick = {
-                    stopPlayback()
-                    onClearAudio()
-                },
-                modifier = Modifier.weight(1f),
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                contentColor = MaterialTheme.colorScheme.onSurface
-            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        leadingIcon = if (isPlaying) Icons.Outlined.Stop else Icons.Outlined.PlayArrow,
+                        enabled = audioUri.isNotBlank(),
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    ExpressiveButton(
+                        label = stringResource(R.string.action_open_settings),
+                        onClick = onOpenSettings,
+                        modifier = Modifier.fillMaxWidth(),
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    ExpressiveButton(
+                        label = stringResource(R.string.action_clear_audio),
+                        onClick = {
+                            stopPlayback()
+                            onClearAudio()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    ExpressiveButton(
+                        label = if (isPlaying) stringResource(R.string.action_stop) else stringResource(R.string.action_play),
+                        onClick = {
+                            if (audioUri.isBlank()) return@ExpressiveButton
+                            if (isPlaying) {
+                                stopPlayback()
+                            } else {
+                                val uri = runCatching { Uri.parse(audioUri) }.getOrNull() ?: return@ExpressiveButton
+                                val newPlayer = MediaPlayer().apply {
+                                    setDataSource(context, uri)
+                                    prepare()
+                                    start()
+                                    setOnCompletionListener {
+                                        isPlaying = false
+                                        runCatching { release() }
+                                        player = null
+                                    }
+                                }
+                                player = newPlayer
+                                isPlaying = true
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        leadingIcon = if (isPlaying) Icons.Outlined.Stop else Icons.Outlined.PlayArrow,
+                        enabled = audioUri.isNotBlank(),
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    ExpressiveButton(
+                        label = stringResource(R.string.action_open_settings),
+                        onClick = onOpenSettings,
+                        modifier = Modifier.weight(1f),
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    ExpressiveButton(
+                        label = stringResource(R.string.action_clear_audio),
+                        onClick = {
+                            stopPlayback()
+                            onClearAudio()
+                        },
+                        modifier = Modifier.weight(1f),
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
         }
     }
 }

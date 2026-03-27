@@ -28,8 +28,8 @@ class CallRecordingForegroundService : Service() {
         createChannelIfNeeded()
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_sys_phone_call)
-            .setContentTitle("Recording call")
-            .setContentText("Recording is active")
+            .setContentTitle(getString(R.string.notification_recording_title))
+            .setContentText(getString(R.string.notification_recording_text))
             .setOngoing(true)
             .build()
     }
@@ -40,7 +40,7 @@ class CallRecordingForegroundService : Service() {
         if (manager.getNotificationChannel(CHANNEL_ID) != null) return
         val channel = NotificationChannel(
             CHANNEL_ID,
-            "Call recording",
+            getString(R.string.notification_channel_recording),
             NotificationManager.IMPORTANCE_LOW
         )
         manager.createNotificationChannel(channel)

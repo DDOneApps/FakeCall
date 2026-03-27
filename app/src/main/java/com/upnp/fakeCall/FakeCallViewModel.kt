@@ -2,6 +2,8 @@ package com.upnp.fakeCall
 
 import android.app.Application
 import android.os.Build
+import com.upnp.fakeCall.R
+import android.content.Context
 import android.content.Intent
 import android.media.MediaMetadataRetriever
 import android.net.Uri
@@ -24,6 +26,8 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.util.Locale
 import java.util.UUID
 
 enum class ScheduleKind {
@@ -42,7 +46,7 @@ data class CustomPreset(
 
 data class FakeCallUiState(
     val isOnboardingComplete: Boolean = false,
-    val providerName: String = "Fake Call Provider",
+    val providerName: String = "",
     val callerName: String = "",
     val callerNumber: String = "",
     val selectedDelaySeconds: Int = 10,
@@ -54,28 +58,38 @@ data class FakeCallUiState(
     val customPresets: List<CustomPreset> = emptyList(),
     val ivrConfig: IvrConfig? = null,
     val selectedAudioUri: String = "",
-    val selectedAudioName: String = "Default",
+    val selectedAudioName: String = "",
     val hasRequiredPermissions: Boolean = false,
     val isProviderEnabled: Boolean = false,
     val isTimerRunning: Boolean = false,
     val timerEndsAtMillis: Long = 0L,
     val statusMessage: String = "",
     val isRecordingEnabled: Boolean = true,
-    val recordingsFolderName: String = "Downloads/FakeCall",
+    val recordingsFolderName: String = "",
+    val quickTriggerCallerName: String = "",
+    val quickTriggerCallerNumber: String = "",
+    val quickTriggerDelaySeconds: Int = QuickTriggerManager.DEFAULT_DELAY_SECONDS,
+    val quickTriggerPresetName: String = "",
+    val quickTriggerPresets: List<QuickTriggerPreset> = emptyList(),
     val startupUpdate: ReleaseInfo? = null
 )
 
 class FakeCallViewModel(application: Application) : AndroidViewModel(application) {
 
+    private fun str(id: Int, vararg args: Any): String =
+        getApplication<Application>().getString(id, *args)
+
     private val telecomHelper = TelecomHelper(application)
     private val prefs = application.getSharedPreferences(PREFS_NAME, 0)
     private val ivrStore = IvrConfigStore()
     private val updateChecker = UpdateChecker()
+    private val quickTriggerDefaults = QuickTriggerManager.loadDefaults(application)
+    private val quickTriggerPresets = QuickTriggerManager.loadPresets(application)
 
     private val _uiState = MutableStateFlow(
         FakeCallUiState(
             isOnboardingComplete = prefs.getBoolean(KEY_ONBOARDING_COMPLETE, false),
-            providerName = prefs.getString(KEY_PROVIDER_NAME, "Fake Call Provider").orEmpty(),
+            providerName = prefs.getString(KEY_PROVIDER_NAME, application.getString(R.string.default_provider_name)).orEmpty(),
             callerName = prefs.getString(KEY_CALLER_NAME, "").orEmpty(),
             callerNumber = prefs.getString(KEY_CALLER_NUMBER, "").orEmpty(),
             selectedDelaySeconds = prefs.getInt(KEY_DELAY_SECONDS, 10),
@@ -91,10 +105,15 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
             customPresets = parseCustomPresets(prefs.getString(KEY_CUSTOM_PRESETS, "").orEmpty()),
             ivrConfig = ivrStore.load(application),
             selectedAudioUri = prefs.getString(KEY_AUDIO_URI, "").orEmpty(),
-            selectedAudioName = prefs.getString(KEY_AUDIO_NAME, "Default").orEmpty(),
+            selectedAudioName = prefs.getString(KEY_AUDIO_NAME, application.getString(R.string.default_audio_name)).orEmpty(),
             timerEndsAtMillis = prefs.getLong(KEY_TIMER_ENDS_AT, 0L),
             isRecordingEnabled = prefs.getBoolean(KEY_RECORDING_ENABLED, true),
-            recordingsFolderName = prefs.getString(KEY_RECORDINGS_FOLDER_NAME, "Downloads/FakeCall").orEmpty()
+            recordingsFolderName = prefs.getString(KEY_RECORDINGS_FOLDER_NAME, application.getString(R.string.default_recordings_folder)).orEmpty(),
+            quickTriggerCallerName = quickTriggerDefaults.callerName,
+            quickTriggerCallerNumber = quickTriggerDefaults.callerNumber,
+            quickTriggerDelaySeconds = quickTriggerDefaults.delaySeconds,
+            quickTriggerPresetName = prefs.getString(KEY_QUICK_TRIGGER_PRESET_NAME, "").orEmpty(),
+            quickTriggerPresets = quickTriggerPresets
         )
     )
     val uiState: StateFlow<FakeCallUiState> = _uiState.asStateFlow()
@@ -115,6 +134,8 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             checkForUpdatesOnStartup()
         }
+
+        QuickTriggerManager.updateLauncherShortcuts(application)
     }
 
     suspend fun checkForUpdatesManual(): UpdateCheckResult {
@@ -130,7 +151,7 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
             it.copy(
                 hasRequiredPermissions = granted,
                 isProviderEnabled = if (granted) it.isProviderEnabled else false,
-                statusMessage = if (granted) it.statusMessage else "Grant phone permissions to continue."
+                statusMessage = if (granted) it.statusMessage else str(R.string.status_grant_permissions)
             )
         }
 
@@ -142,6 +163,68 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
 
     fun onProviderNameChange(value: String) {
         _uiState.update { it.copy(providerName = value) }
+    }
+
+    fun onQuickTriggerCallerNameChange(value: String) {
+        saveQuickTriggerDefaults(uiState.value.copy(quickTriggerCallerName = value))
+    }
+
+    fun onQuickTriggerCallerNumberChange(value: String) {
+        saveQuickTriggerDefaults(uiState.value.copy(quickTriggerCallerNumber = value))
+    }
+
+    fun onQuickTriggerDelayChange(delaySeconds: Int) {
+        saveQuickTriggerDefaults(uiState.value.copy(quickTriggerDelaySeconds = delaySeconds))
+    }
+
+    fun onQuickTriggerPresetNameChange(value: String) {
+        prefs.edit().putString(KEY_QUICK_TRIGGER_PRESET_NAME, value).apply()
+        _uiState.update { it.copy(quickTriggerPresetName = value) }
+    }
+
+    fun saveQuickTriggerPreset() {
+        val customName = uiState.value.quickTriggerPresetName.trim()
+        val result = QuickTriggerManager.saveCurrentDefaultsAsPreset(
+            context = getApplication(),
+            customTitle = customName
+        )
+        val status = when (result) {
+            QuickTriggerPresetSaveResult.SAVED -> str(R.string.status_quick_trigger_preset_saved)
+            QuickTriggerPresetSaveResult.LIMIT_REACHED -> str(R.string.status_quick_trigger_preset_limit)
+            QuickTriggerPresetSaveResult.INVALID_DATA -> str(R.string.status_enter_caller_number_preset)
+        }
+        refreshQuickTriggerPresets(status)
+        if (result == QuickTriggerPresetSaveResult.SAVED) {
+            prefs.edit().putString(KEY_QUICK_TRIGGER_PRESET_NAME, "").apply()
+            _uiState.update { it.copy(quickTriggerPresetName = "") }
+        }
+    }
+
+    fun applyQuickTriggerPreset(slot: Int) {
+        val applied = QuickTriggerManager.applyPresetToDefaults(getApplication(), slot)
+        if (!applied) {
+            _uiState.update { it.copy(statusMessage = str(R.string.status_preset_not_found)) }
+            return
+        }
+        val defaults = QuickTriggerManager.loadDefaults(getApplication())
+        _uiState.update {
+            it.copy(
+                quickTriggerCallerName = defaults.callerName,
+                quickTriggerCallerNumber = defaults.callerNumber,
+                quickTriggerDelaySeconds = defaults.delaySeconds,
+                statusMessage = str(R.string.status_preset_applied)
+            )
+        }
+    }
+
+    fun removeQuickTriggerPreset(slot: Int) {
+        val removed = QuickTriggerManager.removePreset(getApplication(), slot)
+        val status = if (removed) {
+            str(R.string.status_quick_trigger_preset_removed)
+        } else {
+            str(R.string.status_preset_not_found)
+        }
+        refreshQuickTriggerPresets(status)
     }
 
     fun onCallerNameChange(value: String) {
@@ -218,7 +301,7 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
 
         val existing = state.customPresets.toMutableList()
         if (existing.any { it == preset }) {
-            _uiState.update { it.copy(statusMessage = "Preset already saved.") }
+            _uiState.update { it.copy(statusMessage = str(R.string.status_preset_already_saved)) }
             return
         }
         existing.add(0, preset)
@@ -230,7 +313,7 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
         _uiState.update {
             it.copy(
                 customPresets = existing,
-                statusMessage = "Custom preset saved."
+                statusMessage = str(R.string.status_custom_preset_saved)
             )
         }
     }
@@ -257,7 +340,7 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
         _uiState.update {
             it.copy(
                 customPresets = updated,
-                statusMessage = "Preset removed."
+                statusMessage = str(R.string.status_preset_removed)
             )
         }
     }
@@ -285,7 +368,7 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
             it.copy(
                 selectedAudioUri = uri.toString(),
                 selectedAudioName = displayName,
-                statusMessage = "Selected audio file: $displayName"
+                statusMessage = str(R.string.status_audio_selected, displayName)
             )
         }
     }
@@ -293,14 +376,14 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
     fun clearAudioSelection() {
         prefs.edit()
             .remove(KEY_AUDIO_URI)
-            .putString(KEY_AUDIO_NAME, "Default")
+            .putString(KEY_AUDIO_NAME, str(R.string.default_audio_name))
             .apply()
 
         _uiState.update {
             it.copy(
                 selectedAudioUri = "",
-                selectedAudioName = "Default",
-                statusMessage = "Disabling audio output on Call."
+                selectedAudioName = str(R.string.default_audio_name),
+                statusMessage = str(R.string.status_audio_disabled)
             )
         }
     }
@@ -311,13 +394,13 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
         _uiState.update {
             it.copy(
                 isRecordingEnabled = enabled,
-                statusMessage = if (enabled) "Call recording enabled." else "Call recording disabled."
+                statusMessage = if (enabled) str(R.string.status_recording_enabled) else str(R.string.status_recording_disabled)
             )
         }
     }
 
     fun addIvrNode(title: String) {
-        val safeTitle = title.trim().ifBlank { "Menu" }
+        val safeTitle = title.trim().ifBlank { str(R.string.default_ivr_node_title) }
         updateIvrConfig { config ->
             val id = UUID.randomUUID().toString()
             val node = IvrNode(id = id, title = safeTitle)
@@ -417,9 +500,9 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
             getApplication<Application>().contentResolver.openOutputStream(uri, "w")?.use { out ->
                 out.write(xml.toByteArray())
             }
-            _uiState.update { it.copy(statusMessage = "Mailbox exported.") }
+            _uiState.update { it.copy(statusMessage = str(R.string.status_mailbox_exported)) }
         }.onFailure {
-            _uiState.update { it.copy(statusMessage = "Export failed.") }
+            _uiState.update { it.copy(statusMessage = str(R.string.status_export_failed)) }
         }
     }
 
@@ -430,9 +513,9 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
             val xml = resolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }.orEmpty()
             val parsed = ivrStore.parse(xml) ?: error("Invalid IVR config")
             ivrStore.save(getApplication(), parsed)
-            _uiState.update { it.copy(ivrConfig = parsed, statusMessage = "Mailbox imported.") }
+            _uiState.update { it.copy(ivrConfig = parsed, statusMessage = str(R.string.status_mailbox_imported)) }
         }.onFailure {
-            _uiState.update { it.copy(statusMessage = "Import failed.") }
+            _uiState.update { it.copy(statusMessage = str(R.string.status_import_failed)) }
         }
     }
 
@@ -449,7 +532,7 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
             )
         }
 
-        val folderName = runCatching { readableTreeLabel(uri) }.getOrDefault("Selected folder")
+        val folderName = runCatching { readableTreeLabel(uri) }.getOrDefault(str(R.string.default_selected_folder))
 
         prefs.edit()
             .putString(KEY_RECORDINGS_TREE_URI, uri.toString())
@@ -459,7 +542,7 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
         _uiState.update {
             it.copy(
                 recordingsFolderName = folderName,
-                statusMessage = "Recording folder set to: $folderName"
+                statusMessage = str(R.string.status_recording_folder_set, folderName)
             )
         }
     }
@@ -467,24 +550,24 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
     fun clearRecordingFolderSelection() {
         prefs.edit()
             .remove(KEY_RECORDINGS_TREE_URI)
-            .putString(KEY_RECORDINGS_FOLDER_NAME, "Downloads/FakeCall")
+            .putString(KEY_RECORDINGS_FOLDER_NAME, str(R.string.default_recordings_folder))
             .apply()
 
         _uiState.update {
             it.copy(
-                recordingsFolderName = "Downloads/FakeCall",
-                statusMessage = "Recording folder reset to Downloads/FakeCall."
+                recordingsFolderName = str(R.string.default_recordings_folder),
+                statusMessage = str(R.string.status_recording_folder_reset)
             )
         }
     }
 
     fun saveProvider() {
         if (!uiState.value.hasRequiredPermissions) {
-            _uiState.update { it.copy(statusMessage = "Grant phone permissions first.") }
+            _uiState.update { it.copy(statusMessage = str(R.string.status_grant_permissions_first)) }
             return
         }
 
-        val providerName = uiState.value.providerName.trim().ifBlank { "Fake Call Provider" }
+        val providerName = uiState.value.providerName.trim().ifBlank { str(R.string.default_provider_name) }
         val registered = telecomHelper.registerOrUpdatePhoneAccount(providerName)
 
         prefs.edit().putString(KEY_PROVIDER_NAME, providerName).apply()
@@ -493,9 +576,9 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
             it.copy(
                 providerName = providerName,
                 statusMessage = if (registered) {
-                    "Provider saved. Verify it is enabled in Calling Accounts."
+                    str(R.string.status_provider_saved)
                 } else {
-                    "Could not register provider. Check phone permissions and try again."
+                    str(R.string.status_provider_register_failed)
                 }
             )
         }
@@ -538,19 +621,19 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
     private fun scheduleFakeCall() {
         val state = uiState.value
         if (!state.hasRequiredPermissions) {
-            _uiState.update { it.copy(statusMessage = "Grant phone permissions before scheduling.") }
+            _uiState.update { it.copy(statusMessage = str(R.string.status_grant_permissions_scheduling)) }
             return
         }
         if (!state.isProviderEnabled) {
             _uiState.update {
-                it.copy(statusMessage = "Enable this app in system Calling Accounts first.")
+                it.copy(statusMessage = str(R.string.status_enable_calling_accounts))
             }
             return
         }
 
         val number = state.callerNumber.trim()
         if (number.isBlank()) {
-            _uiState.update { it.copy(statusMessage = "Enter a caller number before scheduling.") }
+            _uiState.update { it.copy(statusMessage = str(R.string.status_enter_caller_number_scheduling)) }
             return
         }
 
@@ -584,17 +667,19 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
             }
 
             prefs.edit().remove(KEY_TIMER_ENDS_AT).apply()
+            prefs.edit().putInt(KEY_ACTIVE_PRESET_SLOT, -1).apply()
             _uiState.update {
                 it.copy(
                     isTimerRunning = false,
                     timerEndsAtMillis = 0L,
                     statusMessage = if (triggered) {
-                        "Triggering incoming call now."
+                        str(R.string.status_triggering_now)
                     } else {
-                        "Could not trigger call. Enable provider in Calling Accounts."
+                        str(R.string.status_trigger_failed)
                     }
                 )
             }
+            QuickTriggerManager.refreshQuickSettingsTiles(getApplication())
             return
         }
 
@@ -609,12 +694,15 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
 
         if (!scheduled) {
             _uiState.update {
-                it.copy(statusMessage = "Enable exact alarms to schedule precise calls.")
+                it.copy(statusMessage = str(R.string.status_enable_exact_alarms))
             }
             return
         }
 
-        prefs.edit().putLong(KEY_TIMER_ENDS_AT, triggerAtMillis).apply()
+        prefs.edit()
+            .putLong(KEY_TIMER_ENDS_AT, triggerAtMillis)
+            .putInt(KEY_ACTIVE_PRESET_SLOT, -1)
+            .apply()
         _uiState.update {
             it.copy(
                 isTimerRunning = true,
@@ -622,18 +710,23 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
                 statusMessage = buildScheduleStatus(state.scheduleKind, selectedDelaySeconds, triggerAtMillis)
             )
         }
+        QuickTriggerManager.refreshQuickSettingsTiles(getApplication())
     }
 
     private fun cancelTimer() {
         FakeCallAlarmScheduler.cancel(getApplication())
-        prefs.edit().remove(KEY_TIMER_ENDS_AT).apply()
+        prefs.edit()
+            .remove(KEY_TIMER_ENDS_AT)
+            .putInt(KEY_ACTIVE_PRESET_SLOT, -1)
+            .apply()
         _uiState.update {
             it.copy(
                 isTimerRunning = false,
                 timerEndsAtMillis = 0L,
-                statusMessage = "Timer cancelled."
+                statusMessage = str(R.string.status_timer_cancelled)
             )
         }
+        QuickTriggerManager.refreshQuickSettingsTiles(getApplication())
     }
 
     private fun syncRunningTimerState() {
@@ -689,6 +782,33 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
         _uiState.update { it.copy(ivrConfig = updated) }
     }
 
+    private fun saveQuickTriggerDefaults(state: FakeCallUiState) {
+        QuickTriggerManager.saveDefaults(
+            context = getApplication(),
+            defaults = QuickTriggerDefaults(
+                callerName = state.quickTriggerCallerName,
+                callerNumber = state.quickTriggerCallerNumber,
+                delaySeconds = state.quickTriggerDelaySeconds
+            )
+        )
+        _uiState.update {
+            it.copy(
+                quickTriggerCallerName = state.quickTriggerCallerName,
+                quickTriggerCallerNumber = state.quickTriggerCallerNumber,
+                quickTriggerDelaySeconds = state.quickTriggerDelaySeconds
+            )
+        }
+    }
+
+    private fun refreshQuickTriggerPresets(statusMessage: String) {
+        _uiState.update {
+            it.copy(
+                quickTriggerPresets = QuickTriggerManager.loadPresets(getApplication()),
+                statusMessage = statusMessage
+            )
+        }
+    }
+
     private fun customCountdownSeconds(state: FakeCallUiState): Int {
         val minutes = state.customCountdownMinutes.coerceAtLeast(0)
         val seconds = state.customCountdownSeconds.coerceAtLeast(0)
@@ -714,10 +834,16 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
                 val time = Instant.ofEpochMilli(triggerAtMillis)
                     .atZone(ZoneId.systemDefault())
                     .toLocalTime()
-                val formatter = DateTimeFormatter.ofPattern("HH:mm")
-                "Call scheduled for ${time.format(formatter)}."
+                val locale = getApplication<Application>().resources.configuration.locales[0]
+                    ?: Locale.getDefault()
+                val formatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
+                    .withLocale(locale)
+                str(R.string.status_call_scheduled_for, time.format(formatter))
             }
-            else -> "Timer started for ${formatDelay(delaySeconds)}."
+            else -> str(
+                R.string.status_timer_started_for,
+                DelayFormatter.formatLong(getApplication(), delaySeconds)
+            )
         }
     }
 
@@ -768,7 +894,7 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
             retriever.setDataSource(getApplication(), uri)
             retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
         }.getOrNull().orEmpty().ifBlank {
-            uri.lastPathSegment ?: "Selected audio"
+            uri.lastPathSegment ?: str(R.string.default_selected_audio)
         }.also {
             runCatching { retriever.release() }
         }
@@ -788,7 +914,7 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
 
     private fun readableTreeLabel(uri: Uri): String {
         val treeDocId = DocumentsContract.getTreeDocumentId(uri)
-        if (treeDocId.isBlank()) return "Selected folder"
+        if (treeDocId.isBlank()) return str(R.string.default_selected_folder)
         val parts = treeDocId.split(':', limit = 2)
         return when {
             parts.size == 2 && parts[0] == "primary" && parts[1].isNotBlank() -> parts[1]
@@ -810,20 +936,17 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
         private const val KEY_CUSTOM_EXACT_MINUTE = "custom_exact_minute"
         private const val KEY_CUSTOM_PRESETS = "custom_presets"
         private const val KEY_TIMER_ENDS_AT = "timer_ends_at"
+        private const val KEY_ACTIVE_PRESET_SLOT = "quick_trigger_active_preset_slot"
         private const val KEY_AUDIO_URI = "audio_uri"
         private const val KEY_AUDIO_NAME = "audio_name"
         private const val KEY_RECORDING_ENABLED = "recording_enabled"
         private const val KEY_RECORDINGS_TREE_URI = "recordings_tree_uri"
         private const val KEY_RECORDINGS_FOLDER_NAME = "recordings_folder_name"
         private const val KEY_ONBOARDING_COMPLETE = "onboarding_complete"
+        private const val KEY_QUICK_TRIGGER_PRESET_NAME = "quick_trigger_preset_name"
 
-        fun formatDelay(seconds: Int): String {
-            return when {
-                seconds <= 0 -> "Now"
-                seconds < 60 -> "$seconds seconds"
-                seconds % 60 == 0 -> "${seconds / 60} minute${if (seconds >= 120) "s" else ""}"
-                else -> "${seconds / 60}m ${seconds % 60}s"
-            }
+        fun formatDelay(context: Context, seconds: Int): String {
+            return DelayFormatter.formatLong(context, seconds)
         }
     }
 }

@@ -15,7 +15,7 @@ class FakeCallConnectionService : ConnectionService() {
         val extras = request.extras?.getBundle(TelecomManager.EXTRA_INCOMING_CALL_EXTRAS)
         val number = request.address?.schemeSpecificPart
             ?: extras?.getString(TelecomHelper.EXTRA_FAKE_CALLER_NUMBER)
-            ?: "Unknown"
+            ?: getString(R.string.notification_unknown_caller)
         val name = extras?.getString(TelecomHelper.EXTRA_FAKE_CALLER_NAME).orEmpty()
 
         return FakeConnection(
