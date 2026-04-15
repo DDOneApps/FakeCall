@@ -621,6 +621,17 @@ class FakeConnection(
 
     private fun loadSelectedAudioUri(): Uri? {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val hasRuntimeOverride = prefs.getBoolean(KEY_RUNTIME_AUDIO_OVERRIDE_ENABLED, false)
+        if (hasRuntimeOverride) {
+            val runtimeValue = prefs.getString(KEY_RUNTIME_AUDIO_OVERRIDE_URI, "").orEmpty()
+            prefs.edit()
+                .putBoolean(KEY_RUNTIME_AUDIO_OVERRIDE_ENABLED, false)
+                .remove(KEY_RUNTIME_AUDIO_OVERRIDE_URI)
+                .remove(KEY_RUNTIME_AUDIO_OVERRIDE_NAME)
+                .apply()
+            if (runtimeValue.isBlank()) return null
+            return runCatching { Uri.parse(runtimeValue) }.getOrNull()
+        }
         val value = prefs.getString(KEY_AUDIO_URI, "").orEmpty()
         if (value.isBlank()) return null
         return runCatching { Uri.parse(value) }.getOrNull()
@@ -686,6 +697,9 @@ class FakeConnection(
         private const val TAG = "FakeConnection"
         private const val PREFS_NAME = "fake_call_prefs"
         private const val KEY_AUDIO_URI = "audio_uri"
+        private const val KEY_RUNTIME_AUDIO_OVERRIDE_ENABLED = "runtime_audio_override_enabled"
+        private const val KEY_RUNTIME_AUDIO_OVERRIDE_URI = "runtime_audio_override_uri"
+        private const val KEY_RUNTIME_AUDIO_OVERRIDE_NAME = "runtime_audio_override_name"
         private const val KEY_RECORDING_ENABLED = "recording_enabled"
         private const val KEY_RECORDINGS_TREE_URI = "recordings_tree_uri"
         private const val KEY_MP3_IVR_MODE_ENABLED = "mp3_ivr_mode_enabled"

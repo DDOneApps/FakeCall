@@ -22,7 +22,9 @@ object FakeCallAlarmScheduler {
         triggerAtMillis: Long,
         callerName: String,
         callerNumber: String,
-        providerName: String
+        providerName: String,
+        runtimeAudioUri: String? = null,
+        runtimeAudioName: String? = null
     ): Boolean {
         val alarmManager = context.getSystemService(AlarmManager::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
@@ -33,6 +35,13 @@ object FakeCallAlarmScheduler {
             putExtra(FakeCallAlarmReceiver.EXTRA_CALLER_NAME, callerName)
             putExtra(FakeCallAlarmReceiver.EXTRA_CALLER_NUMBER, callerNumber)
             putExtra(FakeCallAlarmReceiver.EXTRA_PROVIDER_NAME, providerName)
+            if (!runtimeAudioUri.isNullOrBlank()) {
+                putExtra(FakeCallAlarmReceiver.EXTRA_RUNTIME_AUDIO_URI, runtimeAudioUri)
+                putExtra(FakeCallAlarmReceiver.EXTRA_RUNTIME_AUDIO_NAME, runtimeAudioName.orEmpty())
+            } else {
+                removeExtra(FakeCallAlarmReceiver.EXTRA_RUNTIME_AUDIO_URI)
+                removeExtra(FakeCallAlarmReceiver.EXTRA_RUNTIME_AUDIO_NAME)
+            }
         }
         val pendingIntent = PendingIntent.getBroadcast(
             context,

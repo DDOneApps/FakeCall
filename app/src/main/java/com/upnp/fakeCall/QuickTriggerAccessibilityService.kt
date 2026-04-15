@@ -36,15 +36,13 @@ class QuickTriggerAccessibilityService : AccessibilityService() {
 
     private fun scheduleQuickTrigger() {
         val defaults = QuickTriggerManager.loadDefaults(this)
-        val result = QuickTriggerManager.executeFromInputs(
-            context = this,
-            callerName = defaults.callerName,
-            callerNumber = defaults.callerNumber,
-            delaySeconds = defaults.delaySeconds
-        )
+        val defaultPresetSlot = QuickTriggerManager.loadDefaultPresetSlot(this)
+        val defaultPreset = defaultPresetSlot?.let { QuickTriggerManager.getPresetBySlot(this, it) }
+        val result = QuickTriggerManager.executeFromDefaults(this)
+        val displayDelay = defaultPreset?.delaySeconds ?: defaults.delaySeconds
         val message = when (result) {
             QuickTriggerExecution.IMMEDIATE -> getString(R.string.toast_triggering_now)
-            QuickTriggerExecution.SCHEDULED -> getString(R.string.toast_scheduled_in, defaults.delaySeconds)
+            QuickTriggerExecution.SCHEDULED -> getString(R.string.toast_scheduled_in, displayDelay)
             QuickTriggerExecution.FAILED -> getString(R.string.toast_call_scheduling_failed)
         }
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()

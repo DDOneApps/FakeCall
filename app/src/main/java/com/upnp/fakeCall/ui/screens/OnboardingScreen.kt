@@ -47,6 +47,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.upnp.fakeCall.FakeCallViewModel
+import com.upnp.fakeCall.BatterySetupNavigator
+import com.upnp.fakeCall.RomFamily
 import com.upnp.fakeCall.R
 import com.upnp.fakeCall.ui.components.AnimatedIcon
 import com.upnp.fakeCall.ui.components.ExpressiveButton
@@ -66,6 +68,8 @@ fun OnboardingScreen(
     val permissionsReady = state.hasRequiredPermissions
     val callingAccountReady = state.isProviderEnabled
     val exactAlarmsReady = viewModel.canScheduleExactAlarms()
+    val batteryOptimizationReady = BatterySetupNavigator.isBatteryOptimizationDisabled(context)
+    val romFamily = BatterySetupNavigator.detectRomFamily()
     val canFinish = permissionsReady && callingAccountReady
 
     val heroScale by animateFloatAsState(
@@ -156,6 +160,21 @@ fun OnboardingScreen(
                         haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                         val intent = viewModel.openExactAlarmSettingsIntent()
                         runCatching { context.startActivity(intent) }
+                    }
+                )
+            }
+
+            item {
+                BatteryOptimizationCard(
+                    isReady = batteryOptimizationReady,
+                    romFamily = romFamily,
+                    onOpenSystemSettings = {
+                        haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        BatterySetupNavigator.openSystemBatteryOptimization(context)
+                    },
+                    onOpenRomSettings = {
+                        haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        BatterySetupNavigator.openOemBackgroundSettings(context)
                     }
                 )
             }
@@ -266,6 +285,89 @@ fun OnboardingScreen(
             item {
                 Spacer(modifier = Modifier.height(12.dp))
             }
+        }
+    }
+}
+
+@Composable
+private fun BatteryOptimizationCard(
+    isReady: Boolean,
+    romFamily: RomFamily,
+    onOpenSystemSettings: () -> Unit,
+    onOpenRomSettings: () -> Unit
+) {
+    val statusColor = if (isReady) {
+        MaterialTheme.colorScheme.tertiaryContainer
+    } else {
+        MaterialTheme.colorScheme.errorContainer
+    }
+
+    val romHint = when (romFamily) {
+        RomFamily.HYPER_OS_XIAOMI -> stringResource(R.string.permission_battery_rom_hint_hyperos)
+        RomFamily.OXYGEN_OS_ONEPLUS -> stringResource(R.string.permission_battery_rom_hint_oxygenos)
+        RomFamily.COLOR_OS_OPPO_REALME -> stringResource(R.string.permission_battery_rom_hint_coloros)
+        RomFamily.ONE_UI_SAMSUNG -> stringResource(R.string.permission_battery_rom_hint_oneui)
+        RomFamily.GENERIC -> stringResource(R.string.permission_battery_rom_hint_generic)
+    }
+
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = ExpressiveCardShape,
+        tonalElevation = 2.dp
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                AnimatedIcon(
+                    imageVector = Icons.Outlined.Settings,
+                    contentDescription = null,
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    backgroundColor = MaterialTheme.colorScheme.surfaceContainer,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.permission_battery_title),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        text = stringResource(R.string.permission_battery_subtitle),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                AnimatedIcon(
+                    imageVector = if (isReady) Icons.Outlined.CheckCircle else Icons.Outlined.WarningAmber,
+                    contentDescription = null,
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    backgroundColor = statusColor,
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            Text(
+                text = romHint,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            ExpressiveButton(
+                label = stringResource(R.string.permission_battery_system_action),
+                onClick = onOpenSystemSettings,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+            ExpressiveButton(
+                label = stringResource(R.string.permission_battery_oem_action),
+                onClick = onOpenRomSettings,
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+            )
         }
     }
 }

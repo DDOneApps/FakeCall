@@ -132,6 +132,7 @@ fun SettingsScreen(
     var showAddNodeDialog by rememberSaveable { mutableStateOf(false) }
     var mappingNodeId by rememberSaveable { mutableStateOf<String?>(null) }
     var pendingAudioNodeId by rememberSaveable { mutableStateOf<String?>(null) }
+    var pendingQuickPresetAudioSlot by rememberSaveable { mutableStateOf<Int?>(null) }
     var isCheckingUpdates by rememberSaveable { mutableStateOf(false) }
     var quickTriggerDelayExpanded by rememberSaveable { mutableStateOf(false) }
     var updateDialogRelease by remember { mutableStateOf<ReleaseInfo?>(null) }
@@ -162,6 +163,16 @@ fun SettingsScreen(
             viewModel.onIvrNodeAudioSelected(nodeId, uri)
         }
         pendingAudioNodeId = null
+    }
+
+    val quickPresetAudioPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        val slot = pendingQuickPresetAudioSlot
+        if (slot != null) {
+            viewModel.onQuickTriggerPresetAudioSelected(slot, uri)
+        }
+        pendingQuickPresetAudioSlot = null
     }
 
     val ivrExportLauncher = rememberLauncherForActivityResult(
@@ -502,7 +513,7 @@ fun SettingsScreen(
                                     }
                                 }
                                 Text(
-                                    text = stringResource(R.string.settings_quick_triggers_audio_note),
+                                    text = stringResource(R.string.settings_quick_triggers_audio_note_with_preset),
                                     style = MaterialTheme.typography.labelLarge,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -575,6 +586,13 @@ fun SettingsScreen(
                                                     style = MaterialTheme.typography.titleSmall,
                                                     color = MaterialTheme.colorScheme.onSurface
                                                 )
+                                                if (state.quickTriggerDefaultPresetSlot == index + 1) {
+                                                    Text(
+                                                        text = stringResource(R.string.settings_default_for_accessibility),
+                                                        style = MaterialTheme.typography.labelLarge,
+                                                        color = MaterialTheme.colorScheme.primary
+                                                    )
+                                                }
                                                 Text(
                                                     text = "${preset.callerName.ifBlank { stringResource(R.string.settings_preset_unknown_caller) }} • ${preset.callerNumber} • ${FakeCallViewModel.formatDelay(context, preset.delaySeconds)}",
                                                     style = MaterialTheme.typography.labelLarge,
@@ -585,17 +603,93 @@ fun SettingsScreen(
                                                     horizontalArrangement = Arrangement.SpaceBetween,
                                                     verticalAlignment = Alignment.CenterVertically
                                                 ) {
-                                                    TextButton(
-                                                        onClick = { viewModel.applyQuickTriggerPreset(index + 1) },
-                                                        modifier = Modifier.bounceClick()
+                                                    Text(
+                                                        text = stringResource(R.string.settings_preset_custom_audio_toggle),
+                                                        style = MaterialTheme.typography.labelLarge,
+                                                        color = MaterialTheme.colorScheme.onSurface
+                                                    )
+                                                    Switch(
+                                                        checked = preset.useCustomAudio,
+                                                        onCheckedChange = { enabled ->
+                                                            viewModel.onQuickTriggerPresetUseCustomAudioChange(
+                                                                index + 1,
+                                                                enabled
+                                                            )
+                                                        }
+                                                    )
+                                                }
+                                                if (preset.useCustomAudio) {
+                                                    Text(
+                                                        text = stringResource(
+                                                            R.string.settings_preset_custom_audio_current,
+                                                            preset.customAudioName.ifBlank { stringResource(R.string.settings_no_audio_selected) }
+                                                        ),
+                                                        style = MaterialTheme.typography.labelLarge,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        verticalAlignment = Alignment.CenterVertically
                                                     ) {
-                                                        Text(stringResource(R.string.settings_apply_to_defaults))
+                                                        TextButton(
+                                                            onClick = {
+                                                                pendingQuickPresetAudioSlot = index + 1
+                                                                quickPresetAudioPickerLauncher.launch(arrayOf("audio/*"))
+                                                            },
+                                                            modifier = Modifier.bounceClick()
+                                                        ) {
+                                                            Text(stringResource(R.string.settings_select_audio_title))
+                                                        }
+                                                        TextButton(
+                                                            onClick = { viewModel.clearQuickTriggerPresetAudio(index + 1) },
+                                                            enabled = preset.customAudioUri.isNotBlank(),
+                                                            modifier = Modifier.bounceClick(enabled = preset.customAudioUri.isNotBlank())
+                                                        ) {
+                                                            Text(stringResource(R.string.action_clear_audio))
+                                                        }
                                                     }
-                                                    TextButton(
-                                                        onClick = { viewModel.removeQuickTriggerPreset(index + 1) },
-                                                        modifier = Modifier.bounceClick()
+                                                }
+                                                Column(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                                ) {
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        verticalAlignment = Alignment.CenterVertically
                                                     ) {
-                                                        Text(stringResource(R.string.action_remove))
+                                                        TextButton(
+                                                            onClick = { viewModel.setQuickTriggerDefaultPreset(index + 1) },
+                                                            modifier = Modifier.bounceClick(),
+                                                            enabled = state.quickTriggerDefaultPresetSlot != index + 1
+                                                        ) {
+                                                            Text(
+                                                                if (state.quickTriggerDefaultPresetSlot == index + 1) {
+                                                                    stringResource(R.string.settings_default_preset_selected)
+                                                                } else {
+                                                                    stringResource(R.string.settings_set_as_default_for_accessibility)
+                                                                }
+                                                            )
+                                                        }
+                                                        TextButton(
+                                                            onClick = { viewModel.applyQuickTriggerPreset(index + 1) },
+                                                            modifier = Modifier.bounceClick()
+                                                        ) {
+                                                            Text(stringResource(R.string.settings_apply_to_defaults))
+                                                        }
+                                                    }
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.End,
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        TextButton(
+                                                            onClick = { viewModel.removeQuickTriggerPreset(index + 1) },
+                                                            modifier = Modifier.bounceClick()
+                                                        ) {
+                                                            Text(stringResource(R.string.action_remove))
+                                                        }
                                                     }
                                                 }
                                             }

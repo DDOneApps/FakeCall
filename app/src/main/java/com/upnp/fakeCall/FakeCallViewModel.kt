@@ -96,6 +96,7 @@ data class FakeCallUiState(
     val quickTriggerDelaySeconds: Int = QuickTriggerManager.DEFAULT_DELAY_SECONDS,
     val quickTriggerPresetName: String = "",
     val quickTriggerPresets: List<QuickTriggerPreset> = emptyList(),
+    val quickTriggerDefaultPresetSlot: Int? = null,
     val isMp3IvrModeEnabled: Boolean = false,
     val mp3IvrFolderUri: String = "",
     val mp3IvrFolderName: String = "",
@@ -155,6 +156,7 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
             quickTriggerDelaySeconds = quickTriggerDefaults.delaySeconds,
             quickTriggerPresetName = prefs.getString(KEY_QUICK_TRIGGER_PRESET_NAME, "").orEmpty(),
             quickTriggerPresets = quickTriggerPresets,
+            quickTriggerDefaultPresetSlot = QuickTriggerManager.loadDefaultPresetSlot(application),
             isMp3IvrModeEnabled = prefs.getBoolean(KEY_MP3_IVR_MODE_ENABLED, false),
             mp3IvrFolderUri = prefs.getString(KEY_MP3_IVR_FOLDER_URI, "").orEmpty(),
             mp3IvrFolderName = prefs.getString(
@@ -268,6 +270,62 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
         val removed = QuickTriggerManager.removePreset(getApplication(), slot)
         val status = if (removed) {
             str(R.string.status_quick_trigger_preset_removed)
+        } else {
+            str(R.string.status_preset_not_found)
+        }
+        refreshQuickTriggerPresets(status)
+    }
+
+    fun setQuickTriggerDefaultPreset(slot: Int) {
+        val updated = QuickTriggerManager.setDefaultPresetSlot(getApplication(), slot)
+        val status = if (updated) {
+            str(R.string.status_quick_trigger_default_preset_set, slot)
+        } else {
+            str(R.string.status_preset_not_found)
+        }
+        refreshQuickTriggerPresets(status)
+    }
+
+    fun onQuickTriggerPresetUseCustomAudioChange(slot: Int, enabled: Boolean) {
+        val updated = QuickTriggerManager.updatePresetAudioMode(getApplication(), slot, enabled)
+        val status = if (updated) {
+            if (enabled) {
+                str(R.string.status_quick_trigger_preset_audio_enabled)
+            } else {
+                str(R.string.status_quick_trigger_preset_audio_disabled)
+            }
+        } else {
+            str(R.string.status_preset_not_found)
+        }
+        refreshQuickTriggerPresets(status)
+    }
+
+    fun onQuickTriggerPresetAudioSelected(slot: Int, uri: Uri?) {
+        if (uri == null) return
+        val app = getApplication<Application>()
+        val resolver = app.contentResolver
+        runCatching {
+            resolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        val label = resolveDisplayName(uri)
+        val updated = QuickTriggerManager.updatePresetAudio(
+            context = app,
+            slot = slot,
+            audioUri = uri.toString(),
+            audioName = label
+        )
+        val status = if (updated) {
+            str(R.string.status_quick_trigger_preset_audio_selected, label)
+        } else {
+            str(R.string.status_preset_not_found)
+        }
+        refreshQuickTriggerPresets(status)
+    }
+
+    fun clearQuickTriggerPresetAudio(slot: Int) {
+        val cleared = QuickTriggerManager.clearPresetAudio(getApplication(), slot)
+        val status = if (cleared) {
+            str(R.string.status_quick_trigger_preset_audio_cleared)
         } else {
             str(R.string.status_preset_not_found)
         }
@@ -985,12 +1043,16 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
     }
 
     private fun saveQuickTriggerDefaults(state: FakeCallUiState) {
+        val existingDefaults = QuickTriggerManager.loadDefaults(getApplication())
         QuickTriggerManager.saveDefaults(
             context = getApplication(),
             defaults = QuickTriggerDefaults(
                 callerName = state.quickTriggerCallerName,
                 callerNumber = state.quickTriggerCallerNumber,
-                delaySeconds = state.quickTriggerDelaySeconds
+                delaySeconds = state.quickTriggerDelaySeconds,
+                useCustomAudioOverride = existingDefaults.useCustomAudioOverride,
+                customAudioUri = existingDefaults.customAudioUri,
+                customAudioName = existingDefaults.customAudioName
             )
         )
         _uiState.update {
@@ -1003,9 +1065,11 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
     }
 
     private fun refreshQuickTriggerPresets(statusMessage: String) {
+        val application = getApplication<Application>()
         _uiState.update {
             it.copy(
-                quickTriggerPresets = QuickTriggerManager.loadPresets(getApplication()),
+                quickTriggerPresets = QuickTriggerManager.loadPresets(application),
+                quickTriggerDefaultPresetSlot = QuickTriggerManager.loadDefaultPresetSlot(application),
                 statusMessage = statusMessage
             )
         }

@@ -20,6 +20,15 @@
     <string name="permission_alarms_title">Präzise Alarme &amp; Erinnerungen</string>
     <string name="permission_alarms_subtitle">Benötigt für zeitgenaue Anrufe ab Android 12+.</string>
     <string name="permission_alarms_action">Präzise Alarme aktivieren</string>
+    <string name="permission_battery_title">Akku-Optimierung + Hintergrundstart</string>
+    <string name="permission_battery_subtitle">Empfohlen bei aggressiven ROMs, damit Anrufe auch bei ausgeschaltetem Display durchkommen.</string>
+    <string name="permission_battery_system_action">System-Akkuoptimierung deaktivieren</string>
+    <string name="permission_battery_oem_action">ROM-Hintergrund/Autostart öffnen</string>
+    <string name="permission_battery_rom_hint_hyperos">HyperOS/Xiaomi: Autostart erlauben und den Energiesparmodus für FakeCall auf Keine Einschränkungen setzen.</string>
+    <string name="permission_battery_rom_hint_oxygenos">OxygenOS/OnePlus: Auto-Start + Hintergrundaktivität erlauben und FakeCall aus der Akkuoptimierung entfernen.</string>
+    <string name="permission_battery_rom_hint_coloros">ColorOS/realme UI: Auto-Start erlauben und Hintergrund-Einfrieren bzw. tiefe Optimierung für FakeCall deaktivieren.</string>
+    <string name="permission_battery_rom_hint_oneui">Samsung One UI: FakeCall auf Uneingeschränkt stellen und Hintergrundaktivität erlauben.</string>
+    <string name="permission_battery_rom_hint_generic">Wenn Anrufe bei ausgeschaltetem Display nicht ankommen: FakeCall auf Uneingeschränkten Akku setzen und Hintergrundaktivität/Autostart erlauben.</string>
     <string name="permission_completed">Abgeschlossen</string>
     <string name="onboarding_calling_accounts_help_title">Kannst du die Anrufkonten nicht öffnen?</string>
     <string name="onboarding_calling_accounts_help_subtitle">Einige OnePlus/Oppo/Realme/Samsung-Builds verstecken diesen Bildschirm. Du kannst ihn direkt per ADB öffnen:</string>
@@ -88,6 +97,7 @@
     <string name="settings_default_caller_number_label">Standard-Anrufernummer</string>
     <string name="settings_default_delay_label">Standardverzögerung</string>
     <string name="settings_quick_triggers_audio_note">Quick Trigger verwenden das im Bereich Audio konfigurierte Audio – inklusive deiner ausgewählten Datei oder Standardwiedergabe.</string>
+    <string name="settings_quick_triggers_audio_note_with_preset">Quick Trigger nutzen standardmäßig die Audio-Einstellung oben. Für jedes gespeicherte Preset kannst du unten optional eine eigene Audio-Datei aktivieren.</string>
     <string name="settings_open_accessibility_settings">Bedienungshilfen-Einstellungen öffnen</string>
     <string name="settings_accessibility_note">Aktiviere dort den FakeCall-Bedienungshilfen-Dienst, um die Systemtaste oder den Kurzbefehl für sofortige Planung zu nutzen.</string>
     <string name="settings_preset_name_label">Name der Voreinstellung (optional)</string>
@@ -95,6 +105,11 @@
     <string name="settings_no_quick_trigger_presets">Noch keine Quick-Trigger-Voreinstellungen. Speichere eine, um sie als App-Aktion und Schnelleinstellungen-Kachel bereitzustellen.</string>
     <string name="settings_preset_entry_title">Voreinstellung %1$d: %2$s</string>
     <string name="settings_preset_unknown_caller">Unbekannter Anrufer</string>
+    <string name="settings_preset_custom_audio_toggle">Eigene Audio-Datei für dieses Preset nutzen</string>
+    <string name="settings_preset_custom_audio_current">Preset-Audio: %1$s</string>
+    <string name="settings_default_for_accessibility">Standard für Bedienungshilfen-Kurzbefehl</string>
+    <string name="settings_set_as_default_for_accessibility">Als Bedienungshilfen-Standard setzen</string>
+    <string name="settings_default_preset_selected">Bedienungshilfen-Standard</string>
     <string name="settings_apply_to_defaults">Auf Standardwerte anwenden</string>
     <string name="settings_presets_note">Voreinstellungen erscheinen als App-Aktionen beim langen Drücken auf das App-Icon und als Schnelleinstellungen-Kacheln (Voreinstellung 1–5).</string>
     <string name="settings_automation_action_note">Aktion: `com.upnp.fakeCall.TRIGGER` mit Extras `caller_name`, `caller_number` und `delay`.</string>
@@ -221,6 +236,11 @@
     <string name="status_preset_not_found">Preset nicht gefunden.</string>
     <string name="status_preset_applied">Preset auf Quick-Trigger-Standardwerte angewendet.</string>
     <string name="status_quick_trigger_preset_removed">Quick-Trigger-Preset entfernt.</string>
+    <string name="status_quick_trigger_preset_audio_enabled">Dieses Preset nutzt jetzt eine eigene Audio-Datei.</string>
+    <string name="status_quick_trigger_preset_audio_disabled">Dieses Preset nutzt jetzt die Standard-Audio-Einstellung.</string>
+    <string name="status_quick_trigger_preset_audio_selected">Preset-Audio ausgewählt: %1$s</string>
+    <string name="status_quick_trigger_preset_audio_cleared">Preset-Audio entfernt.</string>
+    <string name="status_quick_trigger_default_preset_set">Preset %1$d ist jetzt der Bedienungshilfen-Standard.</string>
     <string name="status_preset_already_saved">Preset bereits gespeichert.</string>
     <string name="status_custom_preset_saved">Benutzerdefiniertes Preset gespeichert.</string>
     <string name="status_preset_removed">Preset entfernt.</string>
