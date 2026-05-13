@@ -47,6 +47,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Alarm
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
@@ -135,6 +136,8 @@ fun SettingsScreen(
     var pendingQuickPresetAudioSlot by rememberSaveable { mutableStateOf<Int?>(null) }
     var isCheckingUpdates by rememberSaveable { mutableStateOf(false) }
     var quickTriggerDelayExpanded by rememberSaveable { mutableStateOf(false) }
+    var callRingTimeoutExpanded by rememberSaveable { mutableStateOf(false) }
+    var alarmRingTimeoutExpanded by rememberSaveable { mutableStateOf(false) }
     var updateDialogRelease by remember { mutableStateOf<ReleaseInfo?>(null) }
     var activeSubmenu by rememberSaveable { mutableStateOf(SettingsSubmenu.MAIN) }
     var backGestureProgress by remember { mutableStateOf(0f) }
@@ -381,6 +384,102 @@ fun SettingsScreen(
 
                     item {
                         PreferenceCard(
+                            icon = Icons.Outlined.AccessTime,
+                            title = stringResource(R.string.settings_call_ring_timeout_title),
+                            subtitle = stringResource(R.string.settings_call_ring_timeout_subtitle),
+                            onClick = null,
+                            trailingContent = null
+                        ) {
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                androidx.compose.material3.OutlinedTextField(
+                                    value = FakeCallViewModel.formatRingTimeout(context, state.callRingTimeoutSeconds),
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text(stringResource(R.string.settings_call_ring_timeout_label)) },
+                                    trailingIcon = {
+                                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = callRingTimeoutExpanded)
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(24.dp)
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .matchParentSize()
+                                        .clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null
+                                        ) {
+                                            callRingTimeoutExpanded = !callRingTimeoutExpanded
+                                        }
+                                )
+                                DropdownMenu(
+                                    expanded = callRingTimeoutExpanded,
+                                    onDismissRequest = { callRingTimeoutExpanded = false }
+                                ) {
+                                    viewModel.ringTimeoutOptionsSeconds.forEach { timeoutSeconds ->
+                                        DropdownMenuItem(
+                                            text = { Text(FakeCallViewModel.formatRingTimeout(context, timeoutSeconds)) },
+                                            onClick = {
+                                                viewModel.onCallRingTimeoutChange(timeoutSeconds)
+                                                callRingTimeoutExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    item {
+                        PreferenceCard(
+                            icon = Icons.Outlined.Alarm,
+                            title = stringResource(R.string.settings_alarm_ring_timeout_title),
+                            subtitle = stringResource(R.string.settings_alarm_ring_timeout_subtitle),
+                            onClick = null,
+                            trailingContent = null
+                        ) {
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                androidx.compose.material3.OutlinedTextField(
+                                    value = FakeCallViewModel.formatRingTimeout(context, state.alarmRingTimeoutSeconds),
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text(stringResource(R.string.settings_alarm_ring_timeout_label)) },
+                                    trailingIcon = {
+                                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = alarmRingTimeoutExpanded)
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(24.dp)
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .matchParentSize()
+                                        .clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null
+                                        ) {
+                                            alarmRingTimeoutExpanded = !alarmRingTimeoutExpanded
+                                        }
+                                )
+                                DropdownMenu(
+                                    expanded = alarmRingTimeoutExpanded,
+                                    onDismissRequest = { alarmRingTimeoutExpanded = false }
+                                ) {
+                                    viewModel.ringTimeoutOptionsSeconds.forEach { timeoutSeconds ->
+                                        DropdownMenuItem(
+                                            text = { Text(FakeCallViewModel.formatRingTimeout(context, timeoutSeconds)) },
+                                            onClick = {
+                                                viewModel.onAlarmRingTimeoutChange(timeoutSeconds)
+                                                alarmRingTimeoutExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    item {
+                        PreferenceCard(
                             icon = Icons.Outlined.Mic,
                             title = stringResource(R.string.settings_mic_recording_title),
                             subtitle = if (state.isRecordingEnabled) stringResource(R.string.settings_mic_recording_enabled) else stringResource(R.string.settings_mic_recording_disabled),
@@ -519,14 +618,6 @@ fun SettingsScreen(
                                 )
                             }
                         }
-                    }
-                    item {
-                        PreferenceCard(
-                            icon = Icons.Outlined.Settings,
-                            title = stringResource(R.string.settings_open_accessibility_settings),
-                            subtitle = stringResource(R.string.settings_accessibility_note),
-                            onClick = { openAccessibilitySettings(context) }
-                        )
                     }
                     item {
                         PreferenceCard(
@@ -706,6 +797,14 @@ fun SettingsScreen(
                             subtitle = stringResource(R.string.settings_automation_action_note),
                             onClick = null,
                             trailingContent = null
+                        )
+                    }
+                    item {
+                        PreferenceCard(
+                            icon = Icons.Outlined.Settings,
+                            title = stringResource(R.string.settings_open_accessibility_settings),
+                            subtitle = stringResource(R.string.settings_accessibility_note),
+                            onClick = { openAccessibilitySettings(context) }
                         )
                     }
                 }

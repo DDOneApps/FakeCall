@@ -38,12 +38,23 @@ class TelecomHelper(private val context: Context) {
         }.getOrDefault(false)
     }
 
-    fun triggerIncomingCall(callerName: String, callerNumber: String): Boolean {
+    fun triggerIncomingCall(
+        callerName: String,
+        callerNumber: String,
+        source: IncomingCallSource = IncomingCallSource.CALL
+    ): Boolean {
         return runCatching {
             val normalizedNumber = callerNumber.trim()
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val timeoutSeconds = when (source) {
+                IncomingCallSource.ALARM -> prefs.getInt(KEY_ALARM_RING_TIMEOUT_SECONDS, DEFAULT_ALARM_RING_TIMEOUT_SECONDS)
+                IncomingCallSource.CALL -> prefs.getInt(KEY_CALL_RING_TIMEOUT_SECONDS, DEFAULT_CALL_RING_TIMEOUT_SECONDS)
+            }.coerceAtLeast(0)
             val incomingExtras = Bundle().apply {
                 putString(EXTRA_FAKE_CALLER_NAME, callerName.trim())
                 putString(EXTRA_FAKE_CALLER_NUMBER, normalizedNumber)
+                putString(EXTRA_FAKE_CALL_SOURCE, source.storageValue)
+                putInt(EXTRA_RING_TIMEOUT_SECONDS, timeoutSeconds)
             }
 
             val extras = Bundle().apply {
@@ -60,8 +71,26 @@ class TelecomHelper(private val context: Context) {
     }
 
     companion object {
+        private const val PREFS_NAME = "fake_call_prefs"
+        private const val KEY_CALL_RING_TIMEOUT_SECONDS = "call_ring_timeout_seconds"
+        private const val KEY_ALARM_RING_TIMEOUT_SECONDS = "alarm_ring_timeout_seconds"
+        private const val DEFAULT_CALL_RING_TIMEOUT_SECONDS = 45
+        private const val DEFAULT_ALARM_RING_TIMEOUT_SECONDS = 60
         const val ACCOUNT_ID = "fake_call_provider_account"
         const val EXTRA_FAKE_CALLER_NAME = "extra_fake_caller_name"
         const val EXTRA_FAKE_CALLER_NUMBER = "extra_fake_caller_number"
+        const val EXTRA_FAKE_CALL_SOURCE = "extra_fake_call_source"
+        const val EXTRA_RING_TIMEOUT_SECONDS = "extra_ring_timeout_seconds"
+    }
+}
+
+enum class IncomingCallSource(val storageValue: String) {
+    CALL("call"),
+    ALARM("alarm");
+
+    companion object {
+        fun fromStorage(value: String?): IncomingCallSource {
+            return values().firstOrNull { it.storageValue == value } ?: CALL
+        }
     }
 }

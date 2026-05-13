@@ -104,7 +104,9 @@ import kotlin.math.absoluteValue
 @Composable
 fun DashboardScreen(
     viewModel: FakeCallViewModel,
-    onOpenSettings: () -> Unit
+    onOpenSettings: () -> Unit,
+    bottomFloatingInset: androidx.compose.ui.unit.Dp = 0.dp,
+    modeNavigationBar: (@Composable () -> Unit)? = null
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -134,6 +136,11 @@ fun DashboardScreen(
     )
 
     val canTrigger = state.hasRequiredPermissions && state.isProviderEnabled
+    val hasCallerNumber = when (state.callerInputMode) {
+        CallerInputMode.CONTACT -> state.selectedContact?.phoneNumber?.trim().isNullOrEmpty().not()
+        CallerInputMode.MANUAL -> state.callerNumber.trim().isNotBlank()
+    }
+    val canRunPrimaryAction = state.isTimerRunning || (canTrigger && hasCallerNumber)
     val contactPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -226,19 +233,24 @@ fun DashboardScreen(
                     }
                 },
                 bottomBar = {
-                    BottomActionBar(
-                        enabled = canTrigger || state.isTimerRunning,
-                        label = actionLabel,
-                        containerColor = actionContainerColor,
-                        contentColor = actionContentColor,
-                        isRinging = state.isTimerRunning,
-                        onClick = {
-                            if (canTrigger || state.isTimerRunning) {
-                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                viewModel.onTriggerOrCancelClicked()
+                    Column {
+                        BottomActionBar(
+                            enabled = canRunPrimaryAction,
+                            label = actionLabel,
+                            containerColor = actionContainerColor,
+                            contentColor = actionContentColor,
+                            isRinging = state.isTimerRunning,
+                            extraBottomPadding = bottomFloatingInset,
+                            applyBottomInset = modeNavigationBar == null,
+                            onClick = {
+                                if (canRunPrimaryAction) {
+                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    viewModel.onTriggerOrCancelClicked()
+                                }
                             }
-                        }
-                    )
+                        )
+                        modeNavigationBar?.invoke()
+                    }
                 }
             ) { innerPadding ->
                 LazyColumn(
@@ -288,6 +300,29 @@ fun DashboardScreen(
                             onSelectContact = viewModel::selectContact,
                             onTogglePinned = viewModel::togglePinnedContact
                         )
+                    }
+
+                    item {
+                        if (!state.isTimerRunning && !hasCallerNumber) {
+                            Surface(
+                                tonalElevation = 1.dp,
+                                shape = RoundedCornerShape(24.dp),
+                                color = MaterialTheme.colorScheme.errorContainer
+                            ) {
+                                Text(
+                                    text = if (state.callerInputMode == CallerInputMode.CONTACT) {
+                                        stringResource(R.string.status_select_contact_scheduling)
+                                    } else {
+                                        stringResource(R.string.status_enter_caller_number_scheduling)
+                                    },
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                                )
+                            }
+                        }
                     }
 
                     item {
@@ -520,13 +555,22 @@ private fun BottomActionBar(
     containerColor: androidx.compose.ui.graphics.Color,
     contentColor: androidx.compose.ui.graphics.Color,
     isRinging: Boolean,
+    extraBottomPadding: androidx.compose.ui.unit.Dp,
+    applyBottomInset: Boolean,
     onClick: () -> Unit
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
+            .then(
+                if (applyBottomInset) {
+                    Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
+                } else {
+                    Modifier
+                }
+            )
             .padding(horizontal = 16.dp, vertical = 12.dp)
+            .padding(bottom = extraBottomPadding)
     ) {
         Surface(
             modifier = Modifier

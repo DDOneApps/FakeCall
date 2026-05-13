@@ -12,6 +12,8 @@ import android.media.MediaRecorder
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
+import android.os.Handler
+import android.os.Looper
 import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.telecom.CallAudioState
@@ -32,7 +34,8 @@ import java.util.Locale
 class FakeConnection(
     private val context: Context,
     private val callerName: String,
-    private val callerNumber: String
+    private val callerNumber: String,
+    private val ringTimeoutSeconds: Int
 ) : Connection() {
 
     private var mediaPlayer: MediaPlayer? = null
@@ -47,6 +50,15 @@ class FakeConnection(
     private var ttsEngine: TextToSpeech? = null
     private var pendingTtsMessage: String? = null
     private val folderNavStack = mutableListOf<FolderNavState>()
+    private val runtimeOverrides: RuntimeOverrides = consumeRuntimeOverrides()
+    private val ringTimeoutHandler = Handler(Looper.getMainLooper())
+    private val ringTimeoutRunnable = Runnable {
+        if (!wasAnswered) {
+            disconnectWithCause(DisconnectCause.MISSED)
+        }
+    }
+    private var wasAnswered = false
+    private var snoozeTriggered = false
 
     init {
         val displayName = callerName.ifBlank { callerNumber }
@@ -56,33 +68,41 @@ class FakeConnection(
         setAudioModeIsVoip(true)
         setInitializing()
         setRinging()
+        scheduleRingTimeoutIfNeeded()
     }
 
     override fun onAnswer() {
+        cancelRingTimeout()
+        wasAnswered = true
         setActive()
         runCatching {
             audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
         }
         runCatching {
-            // Start on earpiece, but allow system UI to switch routes afterward.
-            setAudioRoute(CallAudioState.ROUTE_EARPIECE)
-            audioManager.isSpeakerphoneOn = false
-            runCatching { audioManager.stopBluetoothSco() }
-            runCatching { audioManager.isBluetoothScoOn = false }
+            val defaultRoute = if (runtimeOverrides.speakerDefault == AlarmSpeakerDefault.SPEAKER) {
+                CallAudioState.ROUTE_SPEAKER
+            } else {
+                CallAudioState.ROUTE_EARPIECE
+            }
+            setAudioRoute(defaultRoute)
+            applyAudioRoute(defaultRoute)
         }
         startVoicePlayback()
         maybeStartMicRecording()
     }
 
     override fun onReject() {
+        cancelRingTimeout()
         disconnectWithCause(DisconnectCause.REJECTED)
     }
 
     override fun onDisconnect() {
+        cancelRingTimeout()
         disconnectWithCause(DisconnectCause.LOCAL)
     }
 
     override fun onAbort() {
+        cancelRingTimeout()
         disconnectWithCause(DisconnectCause.CANCELED)
     }
 
@@ -127,6 +147,11 @@ class FakeConnection(
 
     override fun onPlayDtmfTone(c: Char) {
         super.onPlayDtmfTone(c)
+        if (c == '1' && runtimeOverrides.snoozeEnabled) {
+            triggerSnooze()
+            disconnectWithCause(DisconnectCause.LOCAL)
+            return
+        }
         if (handleFolderModeDtmf(c)) return
         val machine = ivrStateMachine ?: return
         val next = machine.handleDtmf(c) ?: return
@@ -141,6 +166,10 @@ class FakeConnection(
     }
 
     private fun disconnectWithCause(code: Int) {
+        cancelRingTimeout()
+        if (!wasAnswered && runtimeOverrides.snoozeEnabled) {
+            triggerSnooze()
+        }
         stopAndReleasePlayer()
         shutdownTts()
         folderNavStack.clear()
@@ -152,6 +181,17 @@ class FakeConnection(
         destroy()
     }
 
+    private fun scheduleRingTimeoutIfNeeded() {
+        val timeoutMillis = ringTimeoutSeconds.coerceAtLeast(0) * 1_000L
+        if (timeoutMillis <= 0L) return
+        ringTimeoutHandler.removeCallbacks(ringTimeoutRunnable)
+        ringTimeoutHandler.postDelayed(ringTimeoutRunnable, timeoutMillis)
+    }
+
+    private fun cancelRingTimeout() {
+        ringTimeoutHandler.removeCallbacks(ringTimeoutRunnable)
+    }
+
     private fun startVoicePlayback() {
         stopAndReleasePlayer()
 
@@ -159,6 +199,17 @@ class FakeConnection(
 
         val audioAttributes = buildVoiceAudioAttributes()
         ivrAudioAttributes = audioAttributes
+        if (runtimeOverrides.messageMode == RuntimeMessageMode.TTS) {
+            val message = runtimeOverrides.ttsMessage.ifBlank {
+                if (callerName.isNotBlank()) {
+                    context.getString(R.string.alarm_tts_default_message_with_name, callerName)
+                } else {
+                    context.getString(R.string.alarm_tts_default_message)
+                }
+            }
+            speakFolderPrompt(message)
+            return
+        }
         if (startFolderModeIfEnabled()) {
             return
         }
@@ -177,7 +228,10 @@ class FakeConnection(
             if (started) return
         }
 
-        val selectedUri = loadSelectedAudioUri()
+        val selectedUri = when {
+            runtimeOverrides.customAudioUri.isNotBlank() -> runCatching { Uri.parse(runtimeOverrides.customAudioUri) }.getOrNull()
+            else -> loadSelectedAudioUri()
+        }
         if (selectedUri == null) {
             Log.i(TAG, "No audio file selected; skipping call playback.")
             return
@@ -621,20 +675,106 @@ class FakeConnection(
 
     private fun loadSelectedAudioUri(): Uri? {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val hasRuntimeOverride = prefs.getBoolean(KEY_RUNTIME_AUDIO_OVERRIDE_ENABLED, false)
-        if (hasRuntimeOverride) {
-            val runtimeValue = prefs.getString(KEY_RUNTIME_AUDIO_OVERRIDE_URI, "").orEmpty()
-            prefs.edit()
-                .putBoolean(KEY_RUNTIME_AUDIO_OVERRIDE_ENABLED, false)
-                .remove(KEY_RUNTIME_AUDIO_OVERRIDE_URI)
-                .remove(KEY_RUNTIME_AUDIO_OVERRIDE_NAME)
-                .apply()
-            if (runtimeValue.isBlank()) return null
-            return runCatching { Uri.parse(runtimeValue) }.getOrNull()
-        }
         val value = prefs.getString(KEY_AUDIO_URI, "").orEmpty()
         if (value.isBlank()) return null
         return runCatching { Uri.parse(value) }.getOrNull()
+    }
+
+    private fun consumeRuntimeOverrides(): RuntimeOverrides {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val hasRuntimeAudioOverride = prefs.getBoolean(KEY_RUNTIME_AUDIO_OVERRIDE_ENABLED, false)
+        val customAudioUri = if (hasRuntimeAudioOverride) {
+            prefs.getString(KEY_RUNTIME_AUDIO_OVERRIDE_URI, "").orEmpty()
+        } else {
+            ""
+        }
+        val messageMode = when (prefs.getString(KEY_RUNTIME_MESSAGE_MODE, "").orEmpty()) {
+            RUNTIME_MESSAGE_MODE_TTS -> RuntimeMessageMode.TTS
+            RUNTIME_MESSAGE_MODE_CUSTOM -> RuntimeMessageMode.CUSTOM_AUDIO
+            else -> RuntimeMessageMode.DEFAULT
+        }
+        val ttsMessage = prefs.getString(KEY_RUNTIME_TTS_MESSAGE, "").orEmpty()
+        val speakerDefault = runCatching {
+            AlarmSpeakerDefault.valueOf(
+                prefs.getString(KEY_RUNTIME_SPEAKER_DEFAULT, AlarmSpeakerDefault.EARPIECE.name).orEmpty()
+            )
+        }.getOrDefault(AlarmSpeakerDefault.EARPIECE)
+        val snoozeEnabled = prefs.getBoolean(KEY_RUNTIME_SNOOZE_ENABLED, false)
+        val snoozeMinutes = prefs.getInt(KEY_RUNTIME_SNOOZE_MINUTES, 5).coerceIn(1, 30)
+        val snoozeAlarmId = prefs.getLong(KEY_RUNTIME_SNOOZE_ALARM_ID, 0L)
+        val snoozeCallerName = prefs.getString(KEY_RUNTIME_SNOOZE_CALLER_NAME, callerName).orEmpty()
+        val snoozeCallerNumber = prefs.getString(KEY_RUNTIME_SNOOZE_CALLER_NUMBER, callerNumber).orEmpty()
+        val snoozeProviderName = prefs.getString(
+            KEY_RUNTIME_SNOOZE_PROVIDER_NAME,
+            context.getString(R.string.default_provider_name)
+        ).orEmpty()
+
+        prefs.edit()
+            .putBoolean(KEY_RUNTIME_AUDIO_OVERRIDE_ENABLED, false)
+            .remove(KEY_RUNTIME_AUDIO_OVERRIDE_URI)
+            .remove(KEY_RUNTIME_AUDIO_OVERRIDE_NAME)
+            .remove(KEY_RUNTIME_MESSAGE_MODE)
+            .remove(KEY_RUNTIME_TTS_MESSAGE)
+            .remove(KEY_RUNTIME_SPEAKER_DEFAULT)
+            .remove(KEY_RUNTIME_SNOOZE_ENABLED)
+            .remove(KEY_RUNTIME_SNOOZE_MINUTES)
+            .remove(KEY_RUNTIME_SNOOZE_ALARM_ID)
+            .remove(KEY_RUNTIME_SNOOZE_CALLER_NAME)
+            .remove(KEY_RUNTIME_SNOOZE_CALLER_NUMBER)
+            .remove(KEY_RUNTIME_SNOOZE_PROVIDER_NAME)
+            .apply()
+
+        return RuntimeOverrides(
+            messageMode = messageMode,
+            customAudioUri = customAudioUri,
+            ttsMessage = ttsMessage,
+            speakerDefault = speakerDefault,
+            snoozeEnabled = snoozeEnabled,
+            snoozeMinutes = snoozeMinutes,
+            snoozeAlarmId = snoozeAlarmId,
+            snoozeCallerName = snoozeCallerName,
+            snoozeCallerNumber = snoozeCallerNumber,
+            snoozeProviderName = snoozeProviderName
+        )
+    }
+
+    private fun triggerSnooze() {
+        if (snoozeTriggered) return
+        if (!runtimeOverrides.snoozeEnabled) return
+        val number = runtimeOverrides.snoozeCallerNumber.trim()
+        if (number.isBlank()) return
+        val baseAlarm = if (runtimeOverrides.snoozeAlarmId != 0L) {
+            AlarmModeRepository.find(context, runtimeOverrides.snoozeAlarmId)
+        } else {
+            null
+        }
+        val snoozeId = System.currentTimeMillis()
+        val alarm = baseAlarm ?: AlarmModeItem(
+            id = snoozeId,
+            callerName = runtimeOverrides.snoozeCallerName,
+            callerNumber = number,
+            hour = 0,
+            minute = 0,
+            repeatDays = emptySet(),
+            messageMode = if (runtimeOverrides.messageMode == RuntimeMessageMode.TTS) {
+                AlarmMessageMode.APP_VOICE_TTS
+            } else {
+                AlarmMessageMode.CUSTOM_AUDIO
+            },
+            ttsMessage = runtimeOverrides.ttsMessage,
+            customAudioUri = runtimeOverrides.customAudioUri,
+            customAudioName = "",
+            snoozeEnabled = runtimeOverrides.snoozeEnabled,
+            snoozeMinutes = runtimeOverrides.snoozeMinutes,
+            speakerDefault = runtimeOverrides.speakerDefault,
+            enabled = true
+        )
+        val snoozeAlarm = alarm.copy(id = snoozeId, repeatDays = emptySet(), enabled = true)
+        val triggerAtMillis = System.currentTimeMillis() + runtimeOverrides.snoozeMinutes * 60_000L
+        val scheduled = AlarmModeScheduler.scheduleSnooze(context, snoozeAlarm, triggerAtMillis)
+        if (scheduled) {
+            snoozeTriggered = true
+        }
     }
 
     private fun loadRecordingsTreeUri(): Uri? {
@@ -700,6 +840,17 @@ class FakeConnection(
         private const val KEY_RUNTIME_AUDIO_OVERRIDE_ENABLED = "runtime_audio_override_enabled"
         private const val KEY_RUNTIME_AUDIO_OVERRIDE_URI = "runtime_audio_override_uri"
         private const val KEY_RUNTIME_AUDIO_OVERRIDE_NAME = "runtime_audio_override_name"
+        private const val KEY_RUNTIME_MESSAGE_MODE = "runtime_message_mode"
+        private const val KEY_RUNTIME_TTS_MESSAGE = "runtime_tts_message"
+        private const val KEY_RUNTIME_SPEAKER_DEFAULT = "runtime_speaker_default"
+        private const val KEY_RUNTIME_SNOOZE_ENABLED = "runtime_snooze_enabled"
+        private const val KEY_RUNTIME_SNOOZE_MINUTES = "runtime_snooze_minutes"
+        private const val KEY_RUNTIME_SNOOZE_ALARM_ID = "runtime_snooze_alarm_id"
+        private const val KEY_RUNTIME_SNOOZE_CALLER_NAME = "runtime_snooze_caller_name"
+        private const val KEY_RUNTIME_SNOOZE_CALLER_NUMBER = "runtime_snooze_caller_number"
+        private const val KEY_RUNTIME_SNOOZE_PROVIDER_NAME = "runtime_snooze_provider_name"
+        private const val RUNTIME_MESSAGE_MODE_CUSTOM = "custom_audio"
+        private const val RUNTIME_MESSAGE_MODE_TTS = "tts"
         private const val KEY_RECORDING_ENABLED = "recording_enabled"
         private const val KEY_RECORDINGS_TREE_URI = "recordings_tree_uri"
         private const val KEY_MP3_IVR_MODE_ENABLED = "mp3_ivr_mode_enabled"
@@ -781,4 +932,23 @@ private data class FolderNavState(
     val folderName: String,
     val entries: List<FolderNavEntry>,
     var pageIndex: Int = 0
+)
+
+private enum class RuntimeMessageMode {
+    DEFAULT,
+    CUSTOM_AUDIO,
+    TTS
+}
+
+private data class RuntimeOverrides(
+    val messageMode: RuntimeMessageMode = RuntimeMessageMode.DEFAULT,
+    val customAudioUri: String = "",
+    val ttsMessage: String = "",
+    val speakerDefault: AlarmSpeakerDefault = AlarmSpeakerDefault.EARPIECE,
+    val snoozeEnabled: Boolean = false,
+    val snoozeMinutes: Int = 5,
+    val snoozeAlarmId: Long = 0L,
+    val snoozeCallerName: String = "",
+    val snoozeCallerNumber: String = "",
+    val snoozeProviderName: String = ""
 )

@@ -9,6 +9,8 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -16,24 +18,36 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.res.stringResource
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Alarm
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.FilledTonalButton
@@ -51,19 +65,49 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.upnp.fakeCall.FakeCallViewModel
 import com.upnp.fakeCall.R
 import com.upnp.fakeCall.ReleaseInfo
+import com.upnp.fakeCall.ui.screens.AlarmCreateScreen
+import com.upnp.fakeCall.ui.screens.AlarmOverviewScreen
 import com.upnp.fakeCall.ui.screens.DashboardScreen
 import com.upnp.fakeCall.ui.screens.OnboardingScreen
 import com.upnp.fakeCall.ui.screens.SettingsScreen
 
 private const val ROUTE_ONBOARDING = "onboarding"
 private const val ROUTE_DASHBOARD = "dashboard"
+private const val ROUTE_ALARM = "alarm"
+private const val ROUTE_ALARM_CREATE = "alarm_create"
+private const val ROUTE_ALARM_EDIT = "alarm_edit/{alarmId}"
 private const val ROUTE_SETTINGS = "settings"
+private const val ARG_ALARM_ID = "alarmId"
+
+private fun alarmEditRoute(alarmId: Long): String = "alarm_edit/$alarmId"
+
+private fun modeRouteIndex(route: String?): Int? {
+    return when (route) {
+        ROUTE_DASHBOARD -> 0
+        ROUTE_ALARM -> 1
+        else -> null
+    }
+}
+
+private fun modeSlideDirection(fromRoute: String?, toRoute: String?): AnimatedContentTransitionScope.SlideDirection? {
+    val fromIndex = modeRouteIndex(fromRoute) ?: return null
+    val toIndex = modeRouteIndex(toRoute) ?: return null
+    if (fromIndex == toIndex) return null
+    return if (toIndex > fromIndex) {
+        AnimatedContentTransitionScope.SlideDirection.Left
+    } else {
+        AnimatedContentTransitionScope.SlideDirection.Right
+    }
+}
 
 private val RequiredPermissions = arrayOf(
     Manifest.permission.READ_PHONE_STATE,
@@ -78,6 +122,8 @@ fun FakeCallApp(
 ) {
     val navController = rememberNavController()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = backStackEntry?.destination?.route
     val context = navController.context
 
     val slideSpec = tween<IntOffset>(
@@ -117,28 +163,76 @@ fun FakeCallApp(
                 },
                 modifier = Modifier.fillMaxSize(),
                 enterTransition = {
-                    slideIntoContainer(
-                        towards = AnimatedContentTransitionScope.SlideDirection.Left,
-                        animationSpec = slideSpec
-                    ) + fadeIn(animationSpec = fadeSpec)
+                    val direction = modeSlideDirection(initialState.destination.route, targetState.destination.route)
+                    when {
+                        initialState.destination.route == targetState.destination.route -> EnterTransition.None
+                        direction != null -> {
+                            slideIntoContainer(
+                                towards = direction,
+                                animationSpec = tween(durationMillis = 360, easing = FastOutSlowInEasing)
+                            ) + fadeIn(animationSpec = tween(200, easing = FastOutSlowInEasing))
+                        }
+                        else -> {
+                            slideIntoContainer(
+                                towards = AnimatedContentTransitionScope.SlideDirection.Left,
+                                animationSpec = slideSpec
+                            ) + fadeIn(animationSpec = fadeSpec)
+                        }
+                    }
                 },
                 exitTransition = {
-                    slideOutOfContainer(
-                        towards = AnimatedContentTransitionScope.SlideDirection.Left,
-                        animationSpec = slideSpec
-                    ) + fadeOut(animationSpec = fadeSpec)
+                    val direction = modeSlideDirection(initialState.destination.route, targetState.destination.route)
+                    when {
+                        initialState.destination.route == targetState.destination.route -> ExitTransition.None
+                        direction != null -> {
+                            slideOutOfContainer(
+                                towards = direction,
+                                animationSpec = tween(durationMillis = 360, easing = FastOutSlowInEasing)
+                            ) + fadeOut(animationSpec = tween(180, easing = FastOutSlowInEasing))
+                        }
+                        else -> {
+                            slideOutOfContainer(
+                                towards = AnimatedContentTransitionScope.SlideDirection.Left,
+                                animationSpec = slideSpec
+                            ) + fadeOut(animationSpec = fadeSpec)
+                        }
+                    }
                 },
                 popEnterTransition = {
-                    slideIntoContainer(
-                        towards = AnimatedContentTransitionScope.SlideDirection.Right,
-                        animationSpec = slideSpec
-                    ) + fadeIn(animationSpec = fadeSpec)
+                    val direction = modeSlideDirection(initialState.destination.route, targetState.destination.route)
+                    when {
+                        initialState.destination.route == targetState.destination.route -> EnterTransition.None
+                        direction != null -> {
+                            slideIntoContainer(
+                                towards = direction,
+                                animationSpec = tween(durationMillis = 360, easing = FastOutSlowInEasing)
+                            ) + fadeIn(animationSpec = tween(200, easing = FastOutSlowInEasing))
+                        }
+                        else -> {
+                            slideIntoContainer(
+                                towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                                animationSpec = slideSpec
+                            ) + fadeIn(animationSpec = fadeSpec)
+                        }
+                    }
                 },
                 popExitTransition = {
-                    slideOutOfContainer(
-                        towards = AnimatedContentTransitionScope.SlideDirection.Right,
-                        animationSpec = slideSpec
-                    ) + fadeOut(animationSpec = fadeSpec)
+                    val direction = modeSlideDirection(initialState.destination.route, targetState.destination.route)
+                    when {
+                        initialState.destination.route == targetState.destination.route -> ExitTransition.None
+                        direction != null -> {
+                            slideOutOfContainer(
+                                towards = direction,
+                                animationSpec = tween(durationMillis = 360, easing = FastOutSlowInEasing)
+                            ) + fadeOut(animationSpec = tween(180, easing = FastOutSlowInEasing))
+                        }
+                        else -> {
+                            slideOutOfContainer(
+                                towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                                animationSpec = slideSpec
+                            ) + fadeOut(animationSpec = fadeSpec)
+                        }
+                    }
                 }
             ) {
                 composable(route = ROUTE_ONBOARDING) {
@@ -156,7 +250,47 @@ fun FakeCallApp(
                 composable(route = ROUTE_DASHBOARD) {
                     DashboardScreen(
                         viewModel = viewModel,
-                        onOpenSettings = { navController.navigate(ROUTE_SETTINGS) }
+                        onOpenSettings = { navController.navigate(ROUTE_SETTINGS) },
+                        bottomFloatingInset = 76.dp,
+                        modeNavigationBar = null
+                    )
+                }
+
+                composable(route = ROUTE_ALARM) {
+                    AlarmOverviewScreen(
+                        viewModel = viewModel,
+                        onOpenSettings = { navController.navigate(ROUTE_SETTINGS) },
+                        onOpenCreateAlarm = { navController.navigate(ROUTE_ALARM_CREATE) },
+                        onEditAlarm = { alarmId ->
+                            navController.navigate(alarmEditRoute(alarmId))
+                        }
+                    )
+                }
+
+                composable(route = ROUTE_ALARM_CREATE) {
+                    AlarmCreateScreen(
+                        viewModel = viewModel,
+                        onBack = {
+                            if (!navController.popBackStack()) {
+                                navController.navigate(ROUTE_ALARM) { launchSingleTop = true }
+                            }
+                        }
+                    )
+                }
+
+                composable(
+                    route = ROUTE_ALARM_EDIT,
+                    arguments = listOf(navArgument(ARG_ALARM_ID) { type = NavType.LongType })
+                ) { entry ->
+                    val alarmId = entry.arguments?.getLong(ARG_ALARM_ID) ?: return@composable
+                    AlarmCreateScreen(
+                        viewModel = viewModel,
+                        editAlarmId = alarmId,
+                        onBack = {
+                            if (!navController.popBackStack()) {
+                                navController.navigate(ROUTE_ALARM) { launchSingleTop = true }
+                            }
+                        }
                     )
                 }
 
@@ -174,6 +308,32 @@ fun FakeCallApp(
                         onRequestPermissions = { permissionLauncher.launch(RequiredPermissions) }
                     )
                 }
+            }
+
+            val showModeBar = currentRoute == ROUTE_DASHBOARD || currentRoute == ROUTE_ALARM
+            AnimatedVisibility(
+                visible = showModeBar,
+                enter = fadeIn(animationSpec = tween(160, easing = FastOutSlowInEasing)),
+                exit = fadeOut(animationSpec = tween(120, easing = FastOutSlowInEasing)),
+                modifier = Modifier.align(Alignment.BottomCenter)
+            ) {
+                HomeModeNavigationBar(
+                    selectedRoute = if (currentRoute == ROUTE_ALARM) ROUTE_ALARM else ROUTE_DASHBOARD,
+                    onSelectDashboard = {
+                        if (currentRoute != ROUTE_DASHBOARD) {
+                            navController.navigate(ROUTE_DASHBOARD) {
+                                launchSingleTop = true
+                            }
+                        }
+                    },
+                    onSelectAlarm = {
+                        if (currentRoute != ROUTE_ALARM) {
+                            navController.navigate(ROUTE_ALARM) {
+                                launchSingleTop = true
+                            }
+                        }
+                    }
+                )
             }
 
             val startupUpdate = state.startupUpdate
@@ -256,6 +416,128 @@ private fun UpdateBanner(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun HomeModeNavigationBar(
+    selectedRoute: String,
+    onSelectDashboard: () -> Unit,
+    onSelectAlarm: () -> Unit
+) {
+    val navContainerColor by animateColorAsState(
+        targetValue = if (selectedRoute == ROUTE_ALARM) {
+            MaterialTheme.colorScheme.secondaryContainer
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerHigh
+        },
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "modeBarContainer"
+    )
+    val selectedIndex = if (selectedRoute == ROUTE_ALARM) 1 else 0
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Surface(
+            modifier = Modifier.widthIn(min = 236.dp, max = 312.dp),
+            shape = RoundedCornerShape(28.dp),
+            color = navContainerColor,
+            tonalElevation = 2.dp
+        ) {
+            BoxWithConstraints(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 6.dp, vertical = 6.dp)
+            ) {
+                val selectorOffsetTarget = if (selectedIndex == 0) 0.dp else maxWidth / 2
+                val selectorOffset by animateDpAsState(
+                    targetValue = selectorOffsetTarget,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMediumLow
+                    ),
+                    label = "modeSelectorOffset"
+                )
+                val selectorWidth = maxWidth / 2
+
+                Surface(
+                    modifier = Modifier
+                        .offset(x = selectorOffset)
+                        .width(selectorWidth)
+                        .height(46.dp),
+                    shape = RoundedCornerShape(22.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer
+                ) {}
+
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    ModeSwitchItem(
+                        modifier = Modifier.weight(1f),
+                        label = stringResource(R.string.nav_mode_call),
+                        icon = Icons.Outlined.Phone,
+                        selected = selectedIndex == 0,
+                        onClick = onSelectDashboard
+                    )
+                    ModeSwitchItem(
+                        modifier = Modifier.weight(1f),
+                        label = stringResource(R.string.nav_mode_alarm),
+                        icon = Icons.Outlined.Alarm,
+                        selected = selectedIndex == 1,
+                        onClick = onSelectAlarm
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ModeSwitchItem(
+    modifier: Modifier,
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val contentColor by animateColorAsState(
+        targetValue = if (selected) {
+            MaterialTheme.colorScheme.onPrimaryContainer
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "modeSwitchContent"
+    )
+
+    Row(
+        modifier = modifier
+            .height(46.dp)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = contentColor
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = contentColor,
+            modifier = Modifier.padding(start = 8.dp)
+        )
     }
 }
 

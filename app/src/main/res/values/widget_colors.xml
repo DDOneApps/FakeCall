@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="widget_surface">#FF221519</color>
+    <color name="widget_on_surface">#FFFDE9E9</color>
+    <color name="widget_on_surface_muted">#FFD7B7B7</color>
+    <color name="widget_outline">#40FFE0E0</color>
+    <color name="widget_chip">#26FFE0E0</color>
+    <color name="widget_active_chip">#33FF9C82</color>
+    <color name="widget_accent">#FFFF8E66</color>
+    <color name="widget_on_accent">#FF411400</color>
+</resources>

@@ -128,6 +128,10 @@
             android:exported="false" />
 
         <receiver
+            android:name=".AlarmModeAlarmReceiver"
+            android:exported="false" />
+
+        <receiver
             android:name=".ExternalTriggerReceiver"
             android:exported="true">
             <intent-filter>

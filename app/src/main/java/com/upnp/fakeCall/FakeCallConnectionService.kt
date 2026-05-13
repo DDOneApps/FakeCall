@@ -17,11 +17,17 @@ class FakeCallConnectionService : ConnectionService() {
             ?: extras?.getString(TelecomHelper.EXTRA_FAKE_CALLER_NUMBER)
             ?: getString(R.string.notification_unknown_caller)
         val name = extras?.getString(TelecomHelper.EXTRA_FAKE_CALLER_NAME).orEmpty()
+        val source = IncomingCallSource.fromStorage(
+            extras?.getString(TelecomHelper.EXTRA_FAKE_CALL_SOURCE)
+        )
+        val ringTimeoutSeconds = extras?.getInt(TelecomHelper.EXTRA_RING_TIMEOUT_SECONDS, if (source == IncomingCallSource.ALARM) 60 else 45)
+            ?: if (source == IncomingCallSource.ALARM) 60 else 45
 
         return FakeConnection(
             context = this,
             callerName = name,
-            callerNumber = number
+            callerNumber = number,
+            ringTimeoutSeconds = ringTimeoutSeconds
         )
     }
 }

@@ -97,6 +97,9 @@ data class FakeCallUiState(
     val quickTriggerPresetName: String = "",
     val quickTriggerPresets: List<QuickTriggerPreset> = emptyList(),
     val quickTriggerDefaultPresetSlot: Int? = null,
+    val callRingTimeoutSeconds: Int = 45,
+    val alarmRingTimeoutSeconds: Int = 60,
+    val alarmModeItems: List<AlarmModeItem> = emptyList(),
     val isMp3IvrModeEnabled: Boolean = false,
     val mp3IvrFolderUri: String = "",
     val mp3IvrFolderName: String = "",
@@ -114,6 +117,7 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
     private val updateChecker = UpdateChecker()
     private val quickTriggerDefaults = QuickTriggerManager.loadDefaults(application)
     private val quickTriggerPresets = QuickTriggerManager.loadPresets(application)
+    private val initialAlarmModeItems = AlarmModeRepository.load(application)
     private val initialPinnedContacts = parseContactList(prefs.getString(KEY_PINNED_CONTACTS, "").orEmpty())
     private val initialRecentContacts = pruneRecentContacts(
         recentContacts = parseContactList(prefs.getString(KEY_RECENT_CONTACTS, "").orEmpty()),
@@ -157,6 +161,11 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
             quickTriggerPresetName = prefs.getString(KEY_QUICK_TRIGGER_PRESET_NAME, "").orEmpty(),
             quickTriggerPresets = quickTriggerPresets,
             quickTriggerDefaultPresetSlot = QuickTriggerManager.loadDefaultPresetSlot(application),
+            callRingTimeoutSeconds = prefs.getInt(KEY_CALL_RING_TIMEOUT_SECONDS, DEFAULT_CALL_RING_TIMEOUT_SECONDS)
+                .coerceAtLeast(0),
+            alarmRingTimeoutSeconds = prefs.getInt(KEY_ALARM_RING_TIMEOUT_SECONDS, DEFAULT_ALARM_RING_TIMEOUT_SECONDS)
+                .coerceAtLeast(0),
+            alarmModeItems = initialAlarmModeItems,
             isMp3IvrModeEnabled = prefs.getBoolean(KEY_MP3_IVR_MODE_ENABLED, false),
             mp3IvrFolderUri = prefs.getString(KEY_MP3_IVR_FOLDER_URI, "").orEmpty(),
             mp3IvrFolderName = prefs.getString(
@@ -168,6 +177,7 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
     val uiState: StateFlow<FakeCallUiState> = _uiState.asStateFlow()
 
     val delayOptionsSeconds: List<Int> = listOf(0, 10, 30, 60, 120, 300)
+    val ringTimeoutOptionsSeconds: List<Int> = listOf(0, 15, 30, 45, 60, 90, 120, 180)
 
     init {
         viewModelScope.launch {
@@ -176,6 +186,7 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
                 if (uiState.value.hasRequiredPermissions) {
                     refreshProviderStatus()
                 }
+                syncAlarmModeState()
                 delay(1_000L)
             }
         }
@@ -226,9 +237,193 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
         saveQuickTriggerDefaults(uiState.value.copy(quickTriggerDelaySeconds = delaySeconds))
     }
 
+    fun onCallRingTimeoutChange(timeoutSeconds: Int) {
+        val normalized = timeoutSeconds.coerceAtLeast(0)
+        prefs.edit().putInt(KEY_CALL_RING_TIMEOUT_SECONDS, normalized).apply()
+        _uiState.update { it.copy(callRingTimeoutSeconds = normalized) }
+    }
+
+    fun onAlarmRingTimeoutChange(timeoutSeconds: Int) {
+        val normalized = timeoutSeconds.coerceAtLeast(0)
+        prefs.edit().putInt(KEY_ALARM_RING_TIMEOUT_SECONDS, normalized).apply()
+        _uiState.update { it.copy(alarmRingTimeoutSeconds = normalized) }
+    }
+
     fun onQuickTriggerPresetNameChange(value: String) {
         prefs.edit().putString(KEY_QUICK_TRIGGER_PRESET_NAME, value).apply()
         _uiState.update { it.copy(quickTriggerPresetName = value) }
+    }
+
+    fun newAlarmModeDraft(): AlarmModeDraft {
+        val state = uiState.value
+        val now = ZonedDateTime.now().plusMinutes(5)
+        return AlarmModeDraft(
+            callerName = state.callerName,
+            callerNumber = state.callerNumber,
+            hour = now.hour,
+            minute = now.minute,
+            repeatDays = emptySet(),
+            messageMode = if (state.selectedAudioUri.isBlank()) {
+                AlarmMessageMode.APP_VOICE_TTS
+            } else {
+                AlarmMessageMode.CUSTOM_AUDIO
+            },
+            ttsMessage = str(R.string.alarm_tts_default_message),
+            customAudioUri = state.selectedAudioUri,
+            customAudioName = state.selectedAudioName,
+            snoozeEnabled = true,
+            snoozeMinutes = 5,
+            speakerDefault = AlarmSpeakerDefault.EARPIECE
+        )
+    }
+
+    fun draftForAlarm(alarmId: Long): AlarmModeDraft? {
+        val alarm = AlarmModeRepository.find(getApplication(), alarmId) ?: return null
+        return AlarmModeDraft(
+            callerName = alarm.callerName,
+            callerNumber = alarm.callerNumber,
+            hour = alarm.hour,
+            minute = alarm.minute,
+            repeatDays = alarm.repeatDays,
+            messageMode = alarm.messageMode,
+            ttsMessage = alarm.ttsMessage.ifBlank { str(R.string.alarm_tts_default_message) },
+            customAudioUri = alarm.customAudioUri,
+            customAudioName = alarm.customAudioName,
+            snoozeEnabled = alarm.snoozeEnabled,
+            snoozeMinutes = alarm.snoozeMinutes,
+            speakerDefault = alarm.speakerDefault
+        )
+    }
+
+    fun saveAlarmMode(draft: AlarmModeDraft): Boolean {
+        val alarmId = System.currentTimeMillis()
+        val item = createAlarmModeItem(alarmId, draft) ?: return false
+        return persistAlarmModeItem(item, isUpdate = false)
+    }
+
+    fun updateAlarmMode(alarmId: Long, draft: AlarmModeDraft): Boolean {
+        val existing = AlarmModeRepository.find(getApplication(), alarmId) ?: return false
+        val item = createAlarmModeItem(alarmId, draft, enabled = existing.enabled) ?: return false
+        return persistAlarmModeItem(item, isUpdate = true)
+    }
+
+    fun deleteAlarmMode(alarmId: Long) {
+        AlarmModeScheduler.cancel(getApplication(), alarmId)
+        val updated = AlarmModeRepository.delete(getApplication(), alarmId)
+        _uiState.update {
+            it.copy(
+                alarmModeItems = updated,
+                statusMessage = str(R.string.status_alarm_deleted)
+            )
+        }
+    }
+
+    private fun createAlarmModeItem(
+        alarmId: Long,
+        draft: AlarmModeDraft,
+        enabled: Boolean = true
+    ): AlarmModeItem? {
+        if (!uiState.value.hasRequiredPermissions) {
+            _uiState.update { it.copy(statusMessage = str(R.string.status_grant_permissions_scheduling)) }
+            return null
+        }
+        if (!uiState.value.isProviderEnabled) {
+            _uiState.update { it.copy(statusMessage = str(R.string.status_enable_calling_accounts)) }
+            return null
+        }
+        val number = draft.callerNumber.trim()
+        if (number.isBlank()) {
+            _uiState.update { it.copy(statusMessage = str(R.string.status_enter_caller_number_scheduling)) }
+            return null
+        }
+        val callerName = draft.callerName.trim()
+        val normalizedDraft = draft.copy(
+            callerName = callerName,
+            callerNumber = number,
+            hour = draft.hour.coerceIn(0, 23),
+            minute = draft.minute.coerceIn(0, 59),
+            snoozeMinutes = draft.snoozeMinutes.coerceIn(1, 30),
+            ttsMessage = draft.ttsMessage.trim()
+        )
+        return AlarmModeItem(
+            id = alarmId,
+            callerName = normalizedDraft.callerName,
+            callerNumber = normalizedDraft.callerNumber,
+            hour = normalizedDraft.hour,
+            minute = normalizedDraft.minute,
+            repeatDays = normalizedDraft.repeatDays.filter { it in 1..7 }.toSet(),
+            messageMode = normalizedDraft.messageMode,
+            ttsMessage = normalizedDraft.ttsMessage,
+            customAudioUri = normalizedDraft.customAudioUri,
+            customAudioName = normalizedDraft.customAudioName,
+            snoozeEnabled = normalizedDraft.snoozeEnabled,
+            snoozeMinutes = normalizedDraft.snoozeMinutes,
+            speakerDefault = normalizedDraft.speakerDefault,
+            enabled = enabled
+        )
+    }
+
+    private fun persistAlarmModeItem(item: AlarmModeItem, isUpdate: Boolean): Boolean {
+        if (!AlarmModeScheduler.canScheduleExact(getApplication())) {
+            _uiState.update { it.copy(statusMessage = str(R.string.status_enable_exact_alarms)) }
+            return false
+        }
+
+        AlarmModeScheduler.cancel(getApplication(), item.id)
+        val triggerAtMillis = AlarmModeScheduler.schedule(getApplication(), item)
+        if (triggerAtMillis <= 0L) {
+            _uiState.update { it.copy(statusMessage = str(R.string.status_alarm_schedule_failed)) }
+            return false
+        }
+        val persisted = item.copy(nextTriggerAtMillis = triggerAtMillis)
+        val updated = AlarmModeRepository.upsert(getApplication(), persisted)
+        _uiState.update {
+            it.copy(
+                alarmModeItems = updated,
+                statusMessage = str(
+                    if (isUpdate) R.string.status_alarm_updated_for else R.string.status_alarm_saved_for,
+                    formatAlarmClockTime(persisted.hour, persisted.minute),
+                    formatAlarmRepeatDays(getApplication(), persisted.repeatDays)
+                )
+            )
+        }
+        return true
+    }
+
+    fun onAlarmModeEnabledChanged(alarmId: Long, enabled: Boolean) {
+        val current = AlarmModeRepository.find(getApplication(), alarmId) ?: return
+        if (!enabled) {
+            AlarmModeScheduler.cancel(getApplication(), alarmId)
+            val updated = AlarmModeRepository.upsert(
+                getApplication(),
+                current.copy(enabled = false, nextTriggerAtMillis = 0L)
+            )
+            _uiState.update { it.copy(alarmModeItems = updated) }
+            return
+        }
+        if (!uiState.value.hasRequiredPermissions) {
+            _uiState.update { it.copy(statusMessage = str(R.string.status_grant_permissions_scheduling)) }
+            return
+        }
+        if (!uiState.value.isProviderEnabled) {
+            _uiState.update { it.copy(statusMessage = str(R.string.status_enable_calling_accounts)) }
+            return
+        }
+        if (!AlarmModeScheduler.canScheduleExact(getApplication())) {
+            _uiState.update { it.copy(statusMessage = str(R.string.status_enable_exact_alarms)) }
+            return
+        }
+        val enabledItem = current.copy(enabled = true)
+        val triggerAtMillis = AlarmModeScheduler.schedule(getApplication(), enabledItem)
+        if (triggerAtMillis <= 0L) {
+            _uiState.update { it.copy(statusMessage = str(R.string.status_alarm_schedule_failed)) }
+            return
+        }
+        val updated = AlarmModeRepository.upsert(
+            getApplication(),
+            enabledItem.copy(nextTriggerAtMillis = triggerAtMillis)
+        )
+        _uiState.update { it.copy(alarmModeItems = updated) }
     }
 
     fun saveQuickTriggerPreset() {
@@ -1014,6 +1209,37 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    private fun syncAlarmModeState() {
+        val now = System.currentTimeMillis()
+        var changed = false
+        val updated = AlarmModeRepository.load(getApplication()).map { alarm ->
+            if (!alarm.enabled) {
+                if (alarm.nextTriggerAtMillis != 0L) {
+                    changed = true
+                    alarm.copy(nextTriggerAtMillis = 0L)
+                } else {
+                    alarm
+                }
+            } else if (alarm.nextTriggerAtMillis <= now + 1_000L) {
+                val next = AlarmModeScheduler.computeNextTriggerAtMillis(alarm)
+                if (next > 0L && next != alarm.nextTriggerAtMillis) {
+                    changed = true
+                    alarm.copy(nextTriggerAtMillis = next)
+                } else {
+                    alarm
+                }
+            } else {
+                alarm
+            }
+        }
+        if (changed) {
+            AlarmModeRepository.replaceAll(getApplication(), updated)
+        }
+        if (uiState.value.alarmModeItems != updated) {
+            _uiState.update { it.copy(alarmModeItems = updated) }
+        }
+    }
+
     private fun ensurePhoneAccountRegistered() {
         telecomHelper.registerOrUpdatePhoneAccount(uiState.value.providerName)
     }
@@ -1123,6 +1349,25 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
                 R.string.status_timer_started_for,
                 DelayFormatter.formatLong(getApplication(), delaySeconds)
             )
+        }
+    }
+
+    private fun formatAlarmClockTime(hour: Int, minute: Int): String {
+        val locale = getApplication<Application>().resources.configuration.locales[0] ?: Locale.getDefault()
+        val formatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale)
+        return ZonedDateTime.now()
+            .withHour(hour.coerceIn(0, 23))
+            .withMinute(minute.coerceIn(0, 59))
+            .withSecond(0)
+            .withNano(0)
+            .toLocalTime()
+            .format(formatter)
+    }
+
+    private fun formatAlarmRepeatDays(context: Context, days: Set<Int>): String {
+        if (days.isEmpty()) return str(R.string.alarm_repeat_once)
+        return days.sorted().joinToString(", ") { day ->
+            AlarmModeScheduler.dayLabel(context, day)
         }
     }
 
@@ -1474,11 +1719,23 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
         private const val KEY_MP3_IVR_FOLDER_NAME = "mp3_ivr_folder_name"
         private const val KEY_ONBOARDING_COMPLETE = "onboarding_complete"
         private const val KEY_QUICK_TRIGGER_PRESET_NAME = "quick_trigger_preset_name"
+        private const val KEY_CALL_RING_TIMEOUT_SECONDS = "call_ring_timeout_seconds"
+        private const val KEY_ALARM_RING_TIMEOUT_SECONDS = "alarm_ring_timeout_seconds"
+        private const val DEFAULT_CALL_RING_TIMEOUT_SECONDS = 45
+        private const val DEFAULT_ALARM_RING_TIMEOUT_SECONDS = 60
         private const val MAX_RECENT_CONTACTS = 12
         private const val MAX_PINNED_CONTACTS = 8
 
         fun formatDelay(context: Context, seconds: Int): String {
             return DelayFormatter.formatLong(context, seconds)
+        }
+
+        fun formatRingTimeout(context: Context, seconds: Int): String {
+            val safeSeconds = seconds.coerceAtLeast(0)
+            if (safeSeconds == 0) {
+                return context.getString(R.string.settings_ring_timeout_unlimited)
+            }
+            return DelayFormatter.formatLong(context, safeSeconds)
         }
     }
 }
