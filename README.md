@@ -24,11 +24,6 @@ Introducing FakeCall. Unlike other apps that merely mock a UI, this app integrat
 
 <p align=center>
 
-> [!CAUTION]
-> This app won't work on Android 17 as of now!
-> This is because of google deprecating/changing Provider settings constantly.
-> Please help getting heard by google by going to [this](https://issuetracker.google.com/issues/476293144) android issue and pressing `+1`.
-
 ## Features
 
 </p>
