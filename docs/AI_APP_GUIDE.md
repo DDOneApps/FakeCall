@@ -970,7 +970,7 @@ It calls ViewModel methods for all state changes and scheduling.
 
 Feature areas include:
 
-- Provider setup, including optional provider-name selection from active SIM carriers
+- Provider setup, including optional provider-name selection from stable SIM card names. `FakeCallViewModel.loadSimProviderOptions()` prefers `TelephonyManager.createForSubscriptionId(...).simOperatorName`, then subscription display name, then carrier name, while filtering transient Wi-Fi-calling labels such as `WiFi`/`VoWiFi`.
 - Calling account status/action
 - Audio file selection and default audio behavior
 - Normal and alarm ring timeout

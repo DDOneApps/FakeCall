@@ -75,7 +75,7 @@
     <string name="settings_save_provider_title">Save &amp; register provider</string>
     <string name="settings_save_provider_subtitle">Make this account available for incoming calls.</string>
     <string name="settings_use_sim_provider_title">Use SIM provider name</string>
-    <string name="settings_use_sim_provider_subtitle">Pick a carrier name from a real SIM on this phone.</string>
+    <string name="settings_use_sim_provider_subtitle">Pick the stable SIM card name from a real SIM on this phone.</string>
     <string name="settings_enable_provider_title">Enable provider in system</string>
     <string name="settings_provider_enabled">Provider is enabled.</string>
     <string name="settings_provider_disabled">Open Calling Accounts to enable it.</string>
@@ -220,8 +220,8 @@
     <string name="action_remove">Remove</string>
     <string name="action_apply">Apply</string>
     <string name="sim_provider_dialog_title">Use a SIM provider name?</string>
-    <string name="sim_provider_dialog_subtitle">Choose which SIM carrier should be shown as the FakeCall provider.</string>
-    <string name="sim_provider_no_sims">No readable SIM provider was found. Check phone permissions or enter a provider name manually.</string>
+    <string name="sim_provider_dialog_subtitle">Choose which stable SIM card name should be shown as the FakeCall provider.</string>
+    <string name="sim_provider_no_sims">No stable SIM card name was found. Check phone permissions or enter a provider name manually.</string>
     <string name="sim_provider_slot_label">SIM slot %1$d</string>
     <string name="sim_provider_use_this">Use this provider</string>
     <string name="sim_provider_keep_current">Keep current</string>

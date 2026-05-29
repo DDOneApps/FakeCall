@@ -16,6 +16,7 @@ import android.provider.ContactsContract
 import android.provider.DocumentsContract
 import android.provider.Settings
 import android.telephony.SubscriptionManager
+import android.telephony.TelephonyManager
 import android.telecom.TelecomManager
 import android.util.Base64
 import androidx.lifecycle.AndroidViewModel
@@ -1052,17 +1053,31 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
         if (!hasPermission) return emptyList()
 
         val subscriptionManager = context.getSystemService(SubscriptionManager::class.java) ?: return emptyList()
+        val telephonyManager = context.getSystemService(TelephonyManager::class.java)
         return runCatching {
             subscriptionManager.activeSubscriptionInfoList.orEmpty()
                 .mapNotNull { info ->
-                    val carrierName = info.carrierName?.toString().orEmpty().trim()
+                    val simOperatorName = runCatching {
+                        telephonyManager
+                            ?.createForSubscriptionId(info.subscriptionId)
+                            ?.simOperatorName
+                            .orEmpty()
+                            .trim()
+                    }.getOrDefault("")
                     val displayName = info.displayName?.toString().orEmpty().trim()
-                    val providerName = carrierName.ifBlank { displayName }.trim()
+                    val carrierName = info.carrierName?.toString().orEmpty().trim()
+                    val providerName = listOf(
+                        simOperatorName,
+                        displayName,
+                        carrierName
+                    ).firstOrNull { candidate ->
+                        candidate.isStableSimProviderName()
+                    }.orEmpty()
                     if (providerName.isBlank()) return@mapNotNull null
                     SimProviderOption(
                         subscriptionId = info.subscriptionId,
                         displayName = providerName,
-                        carrierName = carrierName,
+                        carrierName = carrierName.takeIf { it.isStableSimProviderName() }.orEmpty(),
                         slotIndex = info.simSlotIndex
                     )
                 }
@@ -1654,6 +1669,15 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
         }.getOrDefault("")
     }
 
+    private fun String.isStableSimProviderName(): Boolean {
+        val value = trim()
+        if (value.isBlank()) return false
+        val compact = value
+            .lowercase(Locale.ROOT)
+            .filter { it.isLetterOrDigit() }
+        return compact !in UNSTABLE_SIM_PROVIDER_NAMES
+    }
+
     private fun persistContactState(
         selectedContact: CallContact?,
         pinned: List<CallContact>,
@@ -1787,6 +1811,13 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
         private const val DEFAULT_ALARM_RING_TIMEOUT_SECONDS = 0
         private const val MAX_RECENT_CONTACTS = 12
         private const val MAX_PINNED_CONTACTS = 8
+        private val UNSTABLE_SIM_PROVIDER_NAMES = setOf(
+            "wifi",
+            "wificalling",
+            "wlan",
+            "wlancalling",
+            "vowifi"
+        )
 
         fun formatDelay(context: Context, seconds: Int): String {
             return DelayFormatter.formatLong(context, seconds)
