@@ -89,8 +89,8 @@ class FakeConnection(
             setAudioRoute(defaultRoute)
             applyAudioRoute(defaultRoute)
         }
-        startVoicePlayback()
         maybeStartMicRecording()
+        startVoicePlayback()
     }
 
     override fun onReject() {
@@ -564,7 +564,6 @@ class FakeConnection(
             }
 
             recorder.apply {
-                // MIC is more stable for continuous capture during self-managed calls.
                 setAudioSource(MediaRecorder.AudioSource.MIC)
                 setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
                 setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
@@ -644,9 +643,14 @@ class FakeConnection(
         val selectedTreeUri = loadRecordingsTreeUri()
         if (selectedTreeUri != null) {
             val fileUri = runCatching {
+                val treeDocumentId = DocumentsContract.getTreeDocumentId(selectedTreeUri)
+                val parentDocumentUri = DocumentsContract.buildDocumentUriUsingTree(
+                    selectedTreeUri,
+                    treeDocumentId
+                )
                 DocumentsContract.createDocument(
                     resolver,
-                    selectedTreeUri,
+                    parentDocumentUri,
                     "audio/mp4",
                     filename
                 )
@@ -683,7 +687,7 @@ class FakeConnection(
 
     private fun isRecordingEnabled(): Boolean {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        return prefs.getBoolean(KEY_RECORDING_ENABLED, true)
+        return prefs.getBoolean(KEY_RECORDING_ENABLED, DEFAULT_RECORDING_ENABLED)
     }
 
     private fun hasRecordAudioPermission(): Boolean {
@@ -890,6 +894,7 @@ class FakeConnection(
         private const val RUNTIME_MESSAGE_MODE_TTS = "tts"
         private const val KEY_RECORDING_ENABLED = "recording_enabled"
         private const val KEY_RECORDINGS_TREE_URI = "recordings_tree_uri"
+        private const val DEFAULT_RECORDING_ENABLED = false
         private const val KEY_MP3_IVR_MODE_ENABLED = "mp3_ivr_mode_enabled"
         private const val KEY_MP3_IVR_FOLDER_URI = "mp3_ivr_folder_uri"
         private const val KEY_MP3_IVR_FOLDER_NAME = "mp3_ivr_folder_name"

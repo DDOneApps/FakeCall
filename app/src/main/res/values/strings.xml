@@ -240,6 +240,9 @@
     <string name="notification_channel_recording">Call recording</string>
     <string name="notification_recording_title">Recording call</string>
     <string name="notification_recording_text">Recording is active</string>
+    <string name="dashboard_recording_title">Call recording</string>
+    <string name="dashboard_recording_enabled">Recording is enabled for answered calls.</string>
+    <string name="dashboard_recording_disabled">Recording is off.</string>
     <string name="notification_scheduled_title_no_name">Fake call scheduled</string>
     <string name="notification_scheduled_title_with_name">Fake call: %s</string>
     <string name="notification_scheduled_text">Incoming call in %1$d seconds from %2$s</string>

@@ -100,7 +100,7 @@ data class FakeCallUiState(
     val isTimerRunning: Boolean = false,
     val timerEndsAtMillis: Long = 0L,
     val statusMessage: String = "",
-    val isRecordingEnabled: Boolean = true,
+    val isRecordingEnabled: Boolean = false,
     val recordingsFolderName: String = "",
     val quickTriggerCallerName: String = "",
     val quickTriggerCallerNumber: String = "",
@@ -164,7 +164,7 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
             selectedAudioUri = prefs.getString(KEY_AUDIO_URI, "").orEmpty(),
             selectedAudioName = prefs.getString(KEY_AUDIO_NAME, application.getString(R.string.default_audio_name)).orEmpty(),
             timerEndsAtMillis = prefs.getLong(KEY_TIMER_ENDS_AT, 0L),
-            isRecordingEnabled = prefs.getBoolean(KEY_RECORDING_ENABLED, true),
+            isRecordingEnabled = prefs.getBoolean(KEY_RECORDING_ENABLED, DEFAULT_RECORDING_ENABLED),
             recordingsFolderName = prefs.getString(KEY_RECORDINGS_FOLDER_NAME, application.getString(R.string.default_recordings_folder)).orEmpty(),
             quickTriggerCallerName = quickTriggerDefaults.callerName,
             quickTriggerCallerNumber = quickTriggerDefaults.callerNumber,
@@ -1809,6 +1809,7 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
         private const val KEY_ALARM_RING_TIMEOUT_SECONDS = "alarm_ring_timeout_seconds"
         private const val DEFAULT_CALL_RING_TIMEOUT_SECONDS = 45
         private const val DEFAULT_ALARM_RING_TIMEOUT_SECONDS = 0
+        private const val DEFAULT_RECORDING_ENABLED = false
         private const val MAX_RECENT_CONTACTS = 12
         private const val MAX_PINNED_CONTACTS = 8
         private val UNSTABLE_SIM_PROVIDER_NAMES = setOf(

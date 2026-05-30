@@ -160,7 +160,7 @@ Declared components:
 
 - `CallRecordingForegroundService`
   - Foreground service with microphone type.
-  - Keeps a notification visible while `FakeConnection` records microphone audio.
+  - Keeps a notification visible while `FakeConnection` records answered-call audio.
 
 - `QuickTriggerAccessibilityService`
   - Exported and protected by `android.permission.BIND_ACCESSIBILITY_SERVICE`.
@@ -446,8 +446,8 @@ Answer:
 5. Applies default route:
    - earpiece by default
    - speaker if alarm runtime override says speaker
-6. Starts voice playback.
-7. Starts microphone recording if enabled and permitted.
+6. Starts recording if enabled and permitted.
+7. Starts voice playback.
 
 Reject:
 
@@ -487,7 +487,7 @@ Disconnect cleanup:
 - Stops media playback.
 - Shuts down TTS.
 - Clears folder navigation stack.
-- Stops microphone recording and exports/deletes temp file.
+- Stops recording and exports/deletes temp file.
 - Resets audio mode to normal.
 - Calls `setDisconnected(...)`.
 - Calls `destroy()`.
@@ -582,7 +582,7 @@ The engine is lazily initialized. A pending message is stored if TTS initializat
 
 ### 9.6 Recording
 
-Recording starts only after answering a call.
+Recording starts only after answering a call and is disabled by default for new installs/unset prefs.
 
 Requirements:
 
@@ -605,7 +605,7 @@ Runtime behavior:
 
 Recording destination priority:
 
-1. User-selected document tree URI from `recordings_tree_uri`.
+1. User-selected document tree URI from `recordings_tree_uri`. The stored tree URI must be converted with `DocumentsContract.getTreeDocumentId(...)` and `DocumentsContract.buildDocumentUriUsingTree(...)` before calling `DocumentsContract.createDocument(...)`.
 2. `MediaStore.Downloads` relative path `Downloads/FakeCall` on Android Q+.
 3. Internal app storage `filesDir/recordings`.
 
@@ -974,7 +974,7 @@ Feature areas include:
 - Calling account status/action
 - Audio file selection and default audio behavior
 - Normal and alarm ring timeout
-- Microphone recording toggle
+- Recording toggle and dashboard quick recording switch
 - Recording folder selection/reset
 - Automation and quick trigger defaults
 - Quick trigger presets and per-preset audio
@@ -1063,7 +1063,7 @@ MP3 IVR folder:
 Recording folder:
 
 - Stored as `recordings_tree_uri` and `recordings_folder_name`.
-- `FakeConnection` creates output documents with `DocumentsContract.createDocument`.
+- `FakeConnection` creates output documents with `DocumentsContract.createDocument` using the tree's root document URI, not the raw tree URI.
 
 Any code that accepts a URI should ensure the app takes persistable URI permissions when the URI comes from Storage Access Framework. The ViewModel currently has methods such as `onAudioFileSelected`, `onRecordingFolderSelected`, and `onMp3IvrFolderSelected` that are responsible for this handoff.
 
@@ -1204,6 +1204,7 @@ Touchpoints:
 - `FakeConnection.stopAndReleaseRecording`
 - `CallRecordingForegroundService`
 - Settings recording toggle/folder UI
+- Dashboard quick recording toggle
 - Manifest foreground service permissions
 
 Always test:

@@ -231,6 +231,9 @@
     <string name="notification_channel_recording">Anrufaufnahme</string>
     <string name="notification_recording_title">Anruf wird aufgenommen</string>
     <string name="notification_recording_text">Aufnahme ist aktiv</string>
+    <string name="dashboard_recording_title">Anrufaufnahme</string>
+    <string name="dashboard_recording_enabled">Aufnahme ist für angenommene Anrufe aktiviert.</string>
+    <string name="dashboard_recording_disabled">Aufnahme ist aus.</string>
     <string name="notification_scheduled_title_no_name">Fake-Anruf geplant</string>
     <string name="notification_scheduled_title_with_name">Fake-Anruf: %s</string>
     <string name="notification_scheduled_text">Eingehender Anruf in %1$d Sekunden von %2$s</string>
