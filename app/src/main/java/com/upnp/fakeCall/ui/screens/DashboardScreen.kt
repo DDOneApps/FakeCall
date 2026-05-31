@@ -79,6 +79,7 @@ import androidx.compose.ui.util.lerp
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.upnp.fakeCall.AnswerAudioMode
 import com.upnp.fakeCall.CustomPreset
 import com.upnp.fakeCall.CallerInputMode
 import com.upnp.fakeCall.FakeCallUiState
@@ -1103,10 +1104,9 @@ private fun answerPlaybackPreview(
         stringResource(R.string.audio_preview_selected_audio_fallback)
     }
     val rootNode = state.ivrConfig?.let { it.nodes[it.rootId] }
-    val hasCustomIvr = state.ivrConfig?.nodes?.isNotEmpty() == true
 
-    return when {
-        state.isMp3IvrModeEnabled -> {
+    return when (state.answerAudioMode) {
+        AnswerAudioMode.MP3_IVR -> {
             val folderName = state.mp3IvrFolderName.ifBlank {
                 stringResource(R.string.settings_mp3_ivr_no_folder_selected)
             }
@@ -1124,48 +1124,44 @@ private fun answerPlaybackPreview(
             )
         }
 
-        rootNode?.audioUri?.isNotBlank() == true -> {
-            val rootLabel = rootNode.audioLabel
-                .ifBlank { rootNode.title }
+        AnswerAudioMode.CUSTOM_IVR -> {
+            val rootLabel = rootNode?.audioLabel.orEmpty()
+                .ifBlank { rootNode?.title.orEmpty() }
                 .ifBlank { stringResource(R.string.default_ivr_node_title) }
+                .ifBlank { stringResource(R.string.audio_preview_silent_after_answer) }
+            val helperText = if (rootNode?.audioUri?.isNotBlank() == true) {
+                stringResource(R.string.audio_preview_custom_ivr_helper)
+            } else {
+                stringResource(R.string.audio_preview_custom_ivr_missing_root_helper)
+            }
             AnswerPlaybackPreview(
                 modeLabel = stringResource(R.string.audio_preview_mode_custom_ivr),
                 audioLabel = rootLabel,
-                helperText = stringResource(R.string.audio_preview_custom_ivr_helper),
-                previewUri = rootNode.audioUri,
+                helperText = helperText,
+                previewUri = rootNode?.audioUri.orEmpty(),
                 primaryActionLabel = stringResource(R.string.action_configure_ivr)
             )
         }
 
-        hasCustomIvr && state.selectedAudioUri.isNotBlank() -> AnswerPlaybackPreview(
-            modeLabel = stringResource(R.string.audio_preview_mode_ivr_fallback),
-            audioLabel = selectedAudioLabel,
-            helperText = stringResource(R.string.audio_preview_ivr_fallback_helper),
-            previewUri = state.selectedAudioUri,
-            primaryActionLabel = stringResource(R.string.action_configure_ivr),
-            secondaryActionLabel = stringResource(R.string.action_clear_fallback_audio),
-            secondaryAction = onClearAudio
-        )
-
-        hasCustomIvr -> AnswerPlaybackPreview(
-            modeLabel = stringResource(R.string.audio_preview_mode_custom_ivr),
-            audioLabel = stringResource(R.string.audio_preview_silent_after_answer),
-            helperText = stringResource(R.string.audio_preview_ivr_silent_helper),
-            previewUri = "",
-            primaryActionLabel = stringResource(R.string.action_configure_ivr)
-        )
-
-        state.selectedAudioUri.isNotBlank() -> AnswerPlaybackPreview(
+        AnswerAudioMode.AUDIO_FILE -> AnswerPlaybackPreview(
             modeLabel = stringResource(R.string.audio_preview_mode_selected_audio),
-            audioLabel = selectedAudioLabel,
-            helperText = stringResource(R.string.audio_preview_selected_audio_helper),
+            audioLabel = if (state.selectedAudioUri.isBlank()) {
+                stringResource(R.string.audio_preview_silent_after_answer)
+            } else {
+                selectedAudioLabel
+            },
+            helperText = if (state.selectedAudioUri.isBlank()) {
+                stringResource(R.string.audio_preview_selected_audio_missing_helper)
+            } else {
+                stringResource(R.string.audio_preview_selected_audio_helper)
+            },
             previewUri = state.selectedAudioUri,
             primaryActionLabel = stringResource(R.string.action_change_audio),
             secondaryActionLabel = stringResource(R.string.action_clear_audio),
             secondaryAction = onClearAudio
         )
 
-        else -> AnswerPlaybackPreview(
+        AnswerAudioMode.SILENT -> AnswerPlaybackPreview(
             modeLabel = stringResource(R.string.audio_preview_mode_silent),
             audioLabel = stringResource(R.string.audio_preview_silent_after_answer),
             helperText = stringResource(R.string.audio_preview_silent_helper),

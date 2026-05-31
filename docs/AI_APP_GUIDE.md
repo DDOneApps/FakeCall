@@ -325,6 +325,7 @@ timer_ends_at
 quick_trigger_active_preset_slot
 audio_uri
 audio_name
+answer_audio_mode
 recording_enabled
 recordings_tree_uri
 recordings_folder_name
@@ -507,23 +508,27 @@ Normal calls and alarm calls use separate timeout prefs.
 When the call is answered, `startVoicePlayback()` chooses content in this order:
 
 1. Alarm runtime TTS override if `runtime_message_mode == tts`.
-2. MP3-folder IVR mode if enabled.
-3. Custom IVR root node audio if an IVR config exists.
-4. Per-call runtime custom audio override.
-5. Global selected audio URI from settings.
-6. No playback if no URI is available.
+2. Per-call runtime custom audio override.
+3. The normal-call answer audio mode stored in `answer_audio_mode`:
+   - `SILENT`: no playback.
+   - `AUDIO_FILE`: global selected audio URI from settings.
+   - `CUSTOM_IVR`: custom IVR root node audio and keypad routing.
+   - `MP3_IVR`: MP3-folder IVR menu and keypad navigation.
 
 Audio playback uses `MediaPlayer`, `USAGE_VOICE_COMMUNICATION`, and loops by default except MP3-folder item playback, which returns to the menu on completion.
 
-The dashboard answer-audio preview mirrors the normal-call portion of this priority. It shows MP3-folder IVR first when enabled, then custom IVR root audio, then selected fallback audio, and finally silence. Keep `DashboardScreen.answerPlaybackPreview()` aligned with `FakeConnection.startVoicePlayback()` whenever this priority changes.
+The dashboard answer-audio preview mirrors this mode directly. Keep `DashboardScreen.answerPlaybackPreview()` aligned with `FakeConnection.startVoicePlayback()` whenever the answer audio mode behavior changes.
 
 ### 9.3 MP3 Folder IVR Mode
 
-MP3-folder IVR is enabled by prefs:
+MP3-folder IVR is enabled by the unified answer-audio mode and folder prefs:
 
+- `answer_audio_mode == MP3_IVR`
 - `mp3_ivr_mode_enabled`
 - `mp3_ivr_folder_uri`
 - `mp3_ivr_folder_name`
+
+`mp3_ivr_mode_enabled` is retained for compatibility, but new UI should treat `answer_audio_mode` as the source of truth.
 
 Behavior:
 
@@ -974,14 +979,14 @@ Feature areas include:
 
 - Provider setup, including optional provider-name selection from stable SIM card names. `FakeCallViewModel.loadSimProviderOptions()` prefers `TelephonyManager.createForSubscriptionId(...).simOperatorName`, then subscription display name, then carrier name, while filtering transient Wi-Fi-calling labels such as `WiFi`/`VoWiFi`.
 - Calling account status/action
-- Audio file selection, default audio behavior, and the main IVR/keymap entry point
+- Unified answer-audio mode selection for silent, audio file, custom IVR, or MP3-folder IVR
 - Normal and alarm ring timeout
 - Recording toggle and dashboard quick recording switch
 - Recording folder selection/reset
 - Automation and quick trigger defaults
 - Quick trigger presets and per-preset audio
 - Accessibility settings entry
-- IVR custom mode and MP3-folder mode inside the IVR/keymap submenu
+- IVR custom mode and MP3-folder mode details inside the IVR/keymap submenu
 - IVR import/export
 - Add/delete/configure IVR nodes and routes
 - About/update check

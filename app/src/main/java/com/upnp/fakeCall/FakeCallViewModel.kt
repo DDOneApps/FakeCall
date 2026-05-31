@@ -76,6 +76,13 @@ data class SimProviderOption(
     val slotIndex: Int
 )
 
+enum class AnswerAudioMode {
+    SILENT,
+    AUDIO_FILE,
+    CUSTOM_IVR,
+    MP3_IVR
+}
+
 data class FakeCallUiState(
     val isOnboardingComplete: Boolean = false,
     val providerName: String = "",
@@ -93,6 +100,7 @@ data class FakeCallUiState(
     val customExactMinute: Int = 45,
     val customPresets: List<CustomPreset> = emptyList(),
     val ivrConfig: IvrConfig? = null,
+    val answerAudioMode: AnswerAudioMode = AnswerAudioMode.SILENT,
     val selectedAudioUri: String = "",
     val selectedAudioName: String = "",
     val hasRequiredPermissions: Boolean = false,
@@ -161,6 +169,7 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
             customExactMinute = prefs.getInt(KEY_CUSTOM_EXACT_MINUTE, 45),
             customPresets = parseCustomPresets(prefs.getString(KEY_CUSTOM_PRESETS, "").orEmpty()),
             ivrConfig = ivrStore.load(application),
+            answerAudioMode = loadAnswerAudioMode(application),
             selectedAudioUri = prefs.getString(KEY_AUDIO_URI, "").orEmpty(),
             selectedAudioName = prefs.getString(KEY_AUDIO_NAME, application.getString(R.string.default_audio_name)).orEmpty(),
             timerEndsAtMillis = prefs.getLong(KEY_TIMER_ENDS_AT, 0L),
@@ -776,28 +785,71 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
         prefs.edit()
             .putString(KEY_AUDIO_URI, uri.toString())
             .putString(KEY_AUDIO_NAME, displayName)
+            .putString(KEY_ANSWER_AUDIO_MODE, AnswerAudioMode.AUDIO_FILE.name)
+            .putBoolean(KEY_MP3_IVR_MODE_ENABLED, false)
             .apply()
 
         _uiState.update {
             it.copy(
+                answerAudioMode = AnswerAudioMode.AUDIO_FILE,
                 selectedAudioUri = uri.toString(),
                 selectedAudioName = displayName,
+                isMp3IvrModeEnabled = false,
                 statusMessage = str(R.string.status_audio_selected, displayName)
             )
         }
     }
 
     fun clearAudioSelection() {
+        val nextMode = if (uiState.value.answerAudioMode == AnswerAudioMode.AUDIO_FILE) {
+            AnswerAudioMode.SILENT
+        } else {
+            uiState.value.answerAudioMode
+        }
         prefs.edit()
             .remove(KEY_AUDIO_URI)
             .putString(KEY_AUDIO_NAME, str(R.string.default_audio_name))
+            .putString(KEY_ANSWER_AUDIO_MODE, nextMode.name)
             .apply()
 
         _uiState.update {
             it.copy(
+                answerAudioMode = nextMode,
                 selectedAudioUri = "",
                 selectedAudioName = str(R.string.default_audio_name),
                 statusMessage = str(R.string.status_audio_disabled)
+            )
+        }
+    }
+
+    fun onAnswerAudioModeChange(mode: AnswerAudioMode) {
+        val state = uiState.value
+        if (mode == AnswerAudioMode.AUDIO_FILE && state.selectedAudioUri.isBlank()) {
+            _uiState.update { it.copy(statusMessage = str(R.string.status_select_audio_file_first)) }
+            return
+        }
+        if (mode == AnswerAudioMode.MP3_IVR && state.mp3IvrFolderUri.isBlank()) {
+            _uiState.update { it.copy(statusMessage = str(R.string.status_select_mp3_ivr_folder)) }
+            return
+        }
+
+        prefs.edit()
+            .putString(KEY_ANSWER_AUDIO_MODE, mode.name)
+            .putBoolean(KEY_MP3_IVR_MODE_ENABLED, mode == AnswerAudioMode.MP3_IVR)
+            .apply()
+
+        _uiState.update {
+            it.copy(
+                answerAudioMode = mode,
+                isMp3IvrModeEnabled = mode == AnswerAudioMode.MP3_IVR,
+                statusMessage = str(
+                    when (mode) {
+                        AnswerAudioMode.SILENT -> R.string.status_answer_audio_silent
+                        AnswerAudioMode.AUDIO_FILE -> R.string.status_answer_audio_file
+                        AnswerAudioMode.CUSTOM_IVR -> R.string.status_answer_audio_custom_ivr
+                        AnswerAudioMode.MP3_IVR -> R.string.status_answer_audio_mp3_ivr
+                    }
+                )
             )
         }
     }
@@ -976,17 +1028,7 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun onMp3IvrModeEnabledChange(enabled: Boolean) {
-        prefs.edit().putBoolean(KEY_MP3_IVR_MODE_ENABLED, enabled).apply()
-        _uiState.update {
-            it.copy(
-                isMp3IvrModeEnabled = enabled,
-                statusMessage = if (enabled && it.mp3IvrFolderUri.isBlank()) {
-                    str(R.string.status_select_mp3_ivr_folder)
-                } else {
-                    it.statusMessage
-                }
-            )
-        }
+        onAnswerAudioModeChange(if (enabled) AnswerAudioMode.MP3_IVR else AnswerAudioMode.SILENT)
     }
 
     fun onMp3IvrFolderSelected(uri: Uri?) {
@@ -999,22 +1041,36 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
         prefs.edit()
             .putString(KEY_MP3_IVR_FOLDER_URI, uri.toString())
             .putString(KEY_MP3_IVR_FOLDER_NAME, folderName)
+            .putString(KEY_ANSWER_AUDIO_MODE, AnswerAudioMode.MP3_IVR.name)
+            .putBoolean(KEY_MP3_IVR_MODE_ENABLED, true)
             .apply()
         _uiState.update {
             it.copy(
+                answerAudioMode = AnswerAudioMode.MP3_IVR,
+                isMp3IvrModeEnabled = true,
                 mp3IvrFolderUri = uri.toString(),
-                mp3IvrFolderName = folderName
+                mp3IvrFolderName = folderName,
+                statusMessage = str(R.string.status_answer_audio_mp3_ivr)
             )
         }
     }
 
     fun clearMp3IvrFolderSelection() {
+        val nextMode = if (uiState.value.answerAudioMode == AnswerAudioMode.MP3_IVR) {
+            AnswerAudioMode.SILENT
+        } else {
+            uiState.value.answerAudioMode
+        }
         prefs.edit()
             .remove(KEY_MP3_IVR_FOLDER_URI)
             .putString(KEY_MP3_IVR_FOLDER_NAME, str(R.string.settings_mp3_ivr_no_folder_selected))
+            .putString(KEY_ANSWER_AUDIO_MODE, nextMode.name)
+            .putBoolean(KEY_MP3_IVR_MODE_ENABLED, false)
             .apply()
         _uiState.update {
             it.copy(
+                answerAudioMode = nextMode,
+                isMp3IvrModeEnabled = false,
                 mp3IvrFolderUri = "",
                 mp3IvrFolderName = str(R.string.settings_mp3_ivr_no_folder_selected)
             )
@@ -1382,6 +1438,39 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
         val minutes = state.customCountdownMinutes.coerceAtLeast(0)
         val seconds = state.customCountdownSeconds.coerceAtLeast(0)
         return minutes * 60 + seconds
+    }
+
+    private fun loadAnswerAudioMode(context: Context): AnswerAudioMode {
+        val selectedAudioUri = prefs.getString(KEY_AUDIO_URI, "").orEmpty()
+        val mp3FolderUri = prefs.getString(KEY_MP3_IVR_FOLDER_URI, "").orEmpty()
+        val storedMode = prefs.getString(KEY_ANSWER_AUDIO_MODE, "").orEmpty()
+        val parsedMode = runCatching { AnswerAudioMode.valueOf(storedMode) }.getOrNull()
+        val legacyMode = if (parsedMode == null) {
+            val ivrConfig = ivrStore.load(context)
+            val rootNode = ivrConfig?.nodes?.get(ivrConfig.rootId)
+            when {
+                prefs.getBoolean(KEY_MP3_IVR_MODE_ENABLED, false) && mp3FolderUri.isNotBlank() -> AnswerAudioMode.MP3_IVR
+                rootNode?.audioUri?.isNotBlank() == true -> AnswerAudioMode.CUSTOM_IVR
+                selectedAudioUri.isNotBlank() -> AnswerAudioMode.AUDIO_FILE
+                ivrConfig?.nodes?.isNotEmpty() == true -> AnswerAudioMode.CUSTOM_IVR
+                else -> AnswerAudioMode.SILENT
+            }
+        } else {
+            parsedMode
+        }
+
+        val normalized = when (legacyMode) {
+            AnswerAudioMode.AUDIO_FILE -> if (selectedAudioUri.isNotBlank()) legacyMode else AnswerAudioMode.SILENT
+            AnswerAudioMode.MP3_IVR -> if (mp3FolderUri.isNotBlank()) legacyMode else AnswerAudioMode.SILENT
+            else -> legacyMode
+        }
+
+        prefs.edit()
+            .putString(KEY_ANSWER_AUDIO_MODE, normalized.name)
+            .putBoolean(KEY_MP3_IVR_MODE_ENABLED, normalized == AnswerAudioMode.MP3_IVR)
+            .apply()
+
+        return normalized
     }
 
     private fun resolveCaller(state: FakeCallUiState): Pair<String, String> {
@@ -1795,6 +1884,7 @@ class FakeCallViewModel(application: Application) : AndroidViewModel(application
         private const val KEY_CUSTOM_PRESETS = "custom_presets"
         private const val KEY_TIMER_ENDS_AT = "timer_ends_at"
         private const val KEY_ACTIVE_PRESET_SLOT = "quick_trigger_active_preset_slot"
+        private const val KEY_ANSWER_AUDIO_MODE = "answer_audio_mode"
         private const val KEY_AUDIO_URI = "audio_uri"
         private const val KEY_AUDIO_NAME = "audio_name"
         private const val KEY_RECORDING_ENABLED = "recording_enabled"

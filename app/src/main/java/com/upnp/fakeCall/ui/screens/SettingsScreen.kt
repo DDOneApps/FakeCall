@@ -101,6 +101,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.upnp.fakeCall.AnswerAudioMode
 import com.upnp.fakeCall.BuildConfig
 import com.upnp.fakeCall.FakeCallViewModel
 import com.upnp.fakeCall.QuickTriggerManager
@@ -379,31 +380,124 @@ fun SettingsScreen(
                     item {
                         PreferenceCard(
                             icon = Icons.Outlined.MusicNote,
-                            title = stringResource(R.string.settings_select_audio_title),
-                            subtitle = stringResource(
-                                R.string.settings_select_audio_subtitle,
-                                state.selectedAudioName.ifBlank { stringResource(R.string.default_audio_name) }
-                            ),
-                            onClick = { audioPickerLauncher.launch(arrayOf("audio/*")) }
-                        )
-                    }
+                            title = stringResource(R.string.settings_answer_audio_title),
+                            subtitle = answerAudioModeSummary(state),
+                            onClick = null,
+                            trailingContent = null
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                AnswerAudioModeOption(
+                                    title = stringResource(R.string.settings_answer_audio_mode_silent_title),
+                                    subtitle = stringResource(R.string.settings_answer_audio_mode_silent_subtitle),
+                                    icon = Icons.Outlined.VolumeOff,
+                                    selected = state.answerAudioMode == AnswerAudioMode.SILENT,
+                                    onClick = { viewModel.onAnswerAudioModeChange(AnswerAudioMode.SILENT) }
+                                )
+                                AnswerAudioModeOption(
+                                    title = stringResource(R.string.settings_answer_audio_mode_file_title),
+                                    subtitle = if (state.selectedAudioUri.isBlank()) {
+                                        stringResource(R.string.settings_answer_audio_mode_file_missing)
+                                    } else {
+                                        stringResource(R.string.settings_answer_audio_mode_file_subtitle, state.selectedAudioName)
+                                    },
+                                    icon = Icons.Outlined.MusicNote,
+                                    selected = state.answerAudioMode == AnswerAudioMode.AUDIO_FILE,
+                                    onClick = {
+                                        if (state.selectedAudioUri.isBlank()) {
+                                            audioPickerLauncher.launch(arrayOf("audio/*"))
+                                        } else {
+                                            viewModel.onAnswerAudioModeChange(AnswerAudioMode.AUDIO_FILE)
+                                        }
+                                    }
+                                )
+                                AnswerAudioModeOption(
+                                    title = stringResource(R.string.settings_answer_audio_mode_custom_ivr_title),
+                                    subtitle = stringResource(R.string.settings_answer_audio_mode_custom_ivr_subtitle),
+                                    icon = Icons.Outlined.Settings,
+                                    selected = state.answerAudioMode == AnswerAudioMode.CUSTOM_IVR,
+                                    onClick = { viewModel.onAnswerAudioModeChange(AnswerAudioMode.CUSTOM_IVR) }
+                                )
+                                AnswerAudioModeOption(
+                                    title = stringResource(R.string.settings_answer_audio_mode_mp3_ivr_title),
+                                    subtitle = if (state.mp3IvrFolderUri.isBlank()) {
+                                        stringResource(R.string.settings_answer_audio_mode_mp3_ivr_missing)
+                                    } else {
+                                        stringResource(R.string.settings_answer_audio_mode_mp3_ivr_subtitle, state.mp3IvrFolderName)
+                                    },
+                                    icon = Icons.Outlined.Folder,
+                                    selected = state.answerAudioMode == AnswerAudioMode.MP3_IVR,
+                                    onClick = {
+                                        if (state.mp3IvrFolderUri.isBlank()) {
+                                            mp3IvrFolderLauncher.launch(null)
+                                        } else {
+                                            viewModel.onAnswerAudioModeChange(AnswerAudioMode.MP3_IVR)
+                                        }
+                                    }
+                                )
 
-                    item {
-                        PreferenceCard(
-                            icon = Icons.Outlined.VolumeOff,
-                            title = stringResource(R.string.settings_use_default_audio_title),
-                            subtitle = stringResource(R.string.settings_use_default_audio_subtitle),
-                            onClick = viewModel::clearAudioSelection
-                        )
-                    }
-
-                    item {
-                        PreferenceCard(
-                            icon = Icons.Outlined.MusicNote,
-                            title = stringResource(R.string.settings_category_mailbox),
-                            subtitle = stringResource(R.string.settings_mailbox_hub_subtitle),
-                            onClick = { activeSubmenu = SettingsSubmenu.MAILBOX }
-                        )
+                                when (state.answerAudioMode) {
+                                    AnswerAudioMode.SILENT -> {
+                                        Text(
+                                            text = stringResource(R.string.settings_answer_audio_silent_note),
+                                            style = MaterialTheme.typography.labelLarge,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    AnswerAudioMode.AUDIO_FILE -> {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            TextButton(
+                                                onClick = { audioPickerLauncher.launch(arrayOf("audio/*")) },
+                                                modifier = Modifier.bounceClick()
+                                            ) {
+                                                Text(stringResource(R.string.settings_answer_audio_choose_file))
+                                            }
+                                            TextButton(
+                                                onClick = viewModel::clearAudioSelection,
+                                                enabled = state.selectedAudioUri.isNotBlank(),
+                                                modifier = Modifier.bounceClick(enabled = state.selectedAudioUri.isNotBlank())
+                                            ) {
+                                                Text(stringResource(R.string.action_clear_audio))
+                                            }
+                                        }
+                                    }
+                                    AnswerAudioMode.CUSTOM_IVR -> {
+                                        FilledTonalButton(
+                                            onClick = { activeSubmenu = SettingsSubmenu.MAILBOX },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .bounceClick()
+                                        ) {
+                                            Text(stringResource(R.string.settings_answer_audio_configure_keymap))
+                                        }
+                                    }
+                                    AnswerAudioMode.MP3_IVR -> {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            TextButton(
+                                                onClick = { mp3IvrFolderLauncher.launch(null) },
+                                                modifier = Modifier.bounceClick()
+                                            ) {
+                                                Text(stringResource(R.string.settings_answer_audio_choose_folder))
+                                            }
+                                            TextButton(
+                                                onClick = viewModel::clearMp3IvrFolderSelection,
+                                                enabled = state.mp3IvrFolderUri.isNotBlank(),
+                                                modifier = Modifier.bounceClick(enabled = state.mp3IvrFolderUri.isNotBlank())
+                                            ) {
+                                                Text(stringResource(R.string.action_clear_folder))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
 
                     item {
@@ -830,37 +924,7 @@ fun SettingsScreen(
                     item {
                         PreferenceCategoryHeader(stringResource(R.string.settings_category_mailbox))
                     }
-                    item {
-                        PreferenceCard(
-                            icon = Icons.Outlined.MusicNote,
-                            title = stringResource(R.string.settings_ivr_mode_title),
-                            subtitle = stringResource(R.string.settings_ivr_mode_subtitle),
-                            onClick = null,
-                            trailingContent = null
-                        ) {
-                            SingleChoiceSegmentedButtonRow(
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                SegmentedButton(
-                                    selected = !state.isMp3IvrModeEnabled,
-                                    onClick = { viewModel.onMp3IvrModeEnabledChange(false) },
-                                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                                    modifier = Modifier.bounceClick()
-                                ) {
-                                    Text(stringResource(R.string.settings_ivr_mode_custom))
-                                }
-                                SegmentedButton(
-                                    selected = state.isMp3IvrModeEnabled,
-                                    onClick = { viewModel.onMp3IvrModeEnabledChange(true) },
-                                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                                    modifier = Modifier.bounceClick()
-                                ) {
-                                    Text(stringResource(R.string.settings_ivr_mode_mp3))
-                                }
-                            }
-                        }
-                    }
-                    if (state.isMp3IvrModeEnabled) {
+                    if (state.answerAudioMode == AnswerAudioMode.MP3_IVR) {
                         item {
                             PreferenceCard(
                                 icon = Icons.Outlined.MusicNote,
@@ -1157,6 +1221,85 @@ private fun PreferenceCategoryHeader(title: String) {
         style = MaterialTheme.typography.displaySmall,
         color = MaterialTheme.colorScheme.onSurface
     )
+}
+
+@Composable
+private fun answerAudioModeSummary(state: com.upnp.fakeCall.FakeCallUiState): String {
+    return when (state.answerAudioMode) {
+        AnswerAudioMode.SILENT -> stringResource(R.string.settings_answer_audio_summary_silent)
+        AnswerAudioMode.AUDIO_FILE -> stringResource(
+            R.string.settings_answer_audio_summary_file,
+            state.selectedAudioName.ifBlank { stringResource(R.string.default_audio_name) }
+        )
+        AnswerAudioMode.CUSTOM_IVR -> stringResource(R.string.settings_answer_audio_summary_custom_ivr)
+        AnswerAudioMode.MP3_IVR -> stringResource(
+            R.string.settings_answer_audio_summary_mp3_ivr,
+            state.mp3IvrFolderName.ifBlank { stringResource(R.string.settings_mp3_ivr_no_folder_selected) }
+        )
+    }
+}
+
+@Composable
+private fun AnswerAudioModeOption(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val containerColor = if (selected) {
+        MaterialTheme.colorScheme.primaryContainer
+    } else {
+        MaterialTheme.colorScheme.surfaceContainer
+    }
+    val contentColor = if (selected) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .bounceClick(onClick = onClick),
+        shape = RoundedCornerShape(24.dp),
+        color = containerColor,
+        contentColor = contentColor,
+        tonalElevation = if (selected) 2.dp else 1.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = contentColor
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = contentColor
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = contentColor.copy(alpha = 0.78f)
+                )
+            }
+            if (selected) {
+                Icon(
+                    imageVector = Icons.Outlined.CheckCircle,
+                    contentDescription = null,
+                    tint = contentColor
+                )
+            }
+        }
+    }
 }
 
 @Composable

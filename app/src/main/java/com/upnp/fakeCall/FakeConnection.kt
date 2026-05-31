@@ -212,10 +212,44 @@ class FakeConnection(
             speakPrompt(message, repeat = runtimeOverrides.repeatTtsMessage)
             return
         }
-        if (startFolderModeIfEnabled()) {
+        if (runtimeOverrides.customAudioUri.isNotBlank()) {
+            val runtimeUri = runCatching { Uri.parse(runtimeOverrides.customAudioUri) }.getOrNull()
+            if (runtimeUri == null) {
+                Log.i(TAG, "Runtime audio override was invalid; skipping call playback.")
+                return
+            }
+            val started = startPlayerFromUri(runtimeUri, audioAttributes)
+            if (!started) {
+                Log.e(TAG, "Failed to start runtime call playback for uri=$runtimeUri")
+            }
             return
         }
 
+        when (loadAnswerAudioMode()) {
+            AnswerAudioMode.SILENT -> {
+                Log.i(TAG, "Answer audio mode is silent; skipping call playback.")
+            }
+            AnswerAudioMode.AUDIO_FILE -> {
+                val selectedUri = loadSelectedAudioUri()
+                if (selectedUri == null) {
+                    Log.i(TAG, "Answer audio mode is audio file, but no audio file is selected.")
+                    return
+                }
+                val started = startPlayerFromUri(selectedUri, audioAttributes)
+                if (!started) {
+                    Log.e(TAG, "Failed to start call playback for uri=$selectedUri")
+                }
+            }
+            AnswerAudioMode.CUSTOM_IVR -> {
+                startCustomIvrMode(audioAttributes)
+            }
+            AnswerAudioMode.MP3_IVR -> {
+                startFolderMode()
+            }
+        }
+    }
+
+    private fun startCustomIvrMode(audioAttributes: AudioAttributes) {
         val ivrConfig = ivrStore.load(context)
         ivrStateMachine = ivrConfig?.let { IvrStateMachine(it) }
 
@@ -225,30 +259,19 @@ class FakeConnection(
             ?.takeIf { it.isNotBlank() }
             ?.let { runCatching { Uri.parse(it) }.getOrNull() }
 
-        if (ivrAudio != null) {
-            val started = startPlayerFromUri(ivrAudio, audioAttributes)
-            if (started) return
-        }
-
-        val selectedUri = when {
-            runtimeOverrides.customAudioUri.isNotBlank() -> runCatching { Uri.parse(runtimeOverrides.customAudioUri) }.getOrNull()
-            else -> loadSelectedAudioUri()
-        }
-        if (selectedUri == null) {
-            Log.i(TAG, "No audio file selected; skipping call playback.")
+        if (ivrAudio == null) {
+            Log.i(TAG, "Custom IVR mode is selected, but the root node has no audio.")
             return
         }
 
-        val started = startPlayerFromUri(selectedUri, audioAttributes)
+        val started = startPlayerFromUri(ivrAudio, audioAttributes)
         if (!started) {
-            Log.e(TAG, "Failed to start call playback for uri=$selectedUri")
+            Log.e(TAG, "Failed to start custom IVR root audio for uri=$ivrAudio")
         }
     }
 
-    private fun startFolderModeIfEnabled(): Boolean {
+    private fun startFolderMode() {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val enabled = prefs.getBoolean(KEY_MP3_IVR_MODE_ENABLED, false)
-        if (!enabled) return false
 
         ivrStateMachine = null
         val rootUri = prefs.getString(KEY_MP3_IVR_FOLDER_URI, "")
@@ -258,7 +281,7 @@ class FakeConnection(
         if (rootUri == null) {
             folderNavStack.clear()
             speakFolderPrompt(context.getString(R.string.status_select_mp3_ivr_folder))
-            return true
+            return
         }
 
         val rootName = prefs.getString(
@@ -277,11 +300,10 @@ class FakeConnection(
         )
         if (entries.isEmpty()) {
             speakFolderPrompt(context.getString(R.string.tts_mp3_ivr_empty_folder))
-            return true
+            return
         }
 
         speakCurrentFolderMenu()
-        return true
     }
 
     private fun handleFolderModeDtmf(digit: Char): Boolean {
@@ -716,6 +738,28 @@ class FakeConnection(
         return runCatching { Uri.parse(value) }.getOrNull()
     }
 
+    private fun loadAnswerAudioMode(): AnswerAudioMode {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val stored = prefs.getString(KEY_ANSWER_AUDIO_MODE, "").orEmpty()
+        val selectedAudioUri = prefs.getString(KEY_AUDIO_URI, "").orEmpty()
+        val mp3FolderUri = prefs.getString(KEY_MP3_IVR_FOLDER_URI, "").orEmpty()
+        val parsed = runCatching { AnswerAudioMode.valueOf(stored) }.getOrNull()
+        val legacyMode = if (parsed == null) {
+            when {
+                prefs.getBoolean(KEY_MP3_IVR_MODE_ENABLED, false) && mp3FolderUri.isNotBlank() -> AnswerAudioMode.MP3_IVR
+                selectedAudioUri.isNotBlank() -> AnswerAudioMode.AUDIO_FILE
+                else -> AnswerAudioMode.SILENT
+            }
+        } else {
+            parsed
+        }
+        return when (legacyMode) {
+            AnswerAudioMode.AUDIO_FILE -> if (selectedAudioUri.isNotBlank()) legacyMode else AnswerAudioMode.SILENT
+            AnswerAudioMode.MP3_IVR -> if (mp3FolderUri.isNotBlank()) legacyMode else AnswerAudioMode.SILENT
+            else -> legacyMode
+        }
+    }
+
     private fun consumeRuntimeOverrides(): RuntimeOverrides {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val hasRuntimeAudioOverride = prefs.getBoolean(KEY_RUNTIME_AUDIO_OVERRIDE_ENABLED, false)
@@ -876,6 +920,7 @@ class FakeConnection(
     companion object {
         private const val TAG = "FakeConnection"
         private const val PREFS_NAME = "fake_call_prefs"
+        private const val KEY_ANSWER_AUDIO_MODE = "answer_audio_mode"
         private const val KEY_AUDIO_URI = "audio_uri"
         private const val KEY_RUNTIME_AUDIO_OVERRIDE_ENABLED = "runtime_audio_override_enabled"
         private const val KEY_RUNTIME_AUDIO_OVERRIDE_URI = "runtime_audio_override_uri"
