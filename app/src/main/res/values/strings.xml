@@ -208,12 +208,30 @@
     <string name="timing_title">Timing</string>
     <string name="label_saved_presets">Saved presets</string>
     <string name="cd_remove_preset">Remove preset</string>
-    <string name="audio_preview_title">Audio Preview</string>
+    <string name="audio_preview_title">Answer audio</string>
     <string name="audio_preview_hint">Tap to change or disable audio.</string>
+    <string name="audio_preview_mode_mp3_ivr">MP3 IVR folder</string>
+    <string name="audio_preview_mode_custom_ivr">Custom IVR</string>
+    <string name="audio_preview_mode_ivr_fallback">IVR + fallback audio</string>
+    <string name="audio_preview_mode_selected_audio">Selected audio</string>
+    <string name="audio_preview_mode_silent">No answer audio</string>
+    <string name="audio_preview_selected_audio_fallback">Selected audio</string>
+    <string name="audio_preview_silent_after_answer">Silent after answer</string>
+    <string name="audio_preview_mp3_ivr_helper">When the call is answered, the folder menu is announced and keypad choices choose folders or sounds.</string>
+    <string name="audio_preview_mp3_ivr_missing_folder">MP3 IVR is active, but no folder is selected yet. The answered call will ask you to select a folder.</string>
+    <string name="audio_preview_custom_ivr_helper">The IVR root node audio plays first. Keypad choices can switch to other IVR nodes.</string>
+    <string name="audio_preview_ivr_fallback_helper">Custom IVR routing is active, but the root node has no audio. The selected fallback audio plays first.</string>
+    <string name="audio_preview_ivr_silent_helper">Custom IVR routing is active, but the root node and fallback audio are empty.</string>
+    <string name="audio_preview_selected_audio_helper">This selected audio plays when the call is answered.</string>
+    <string name="audio_preview_silent_helper">No audio, TTS, or IVR menu will play after the call is answered.</string>
     <string name="action_stop">Stop</string>
     <string name="action_play">Play</string>
     <string name="action_open_settings">Open settings</string>
     <string name="action_clear_audio">Clear audio</string>
+    <string name="action_change_audio">Change audio</string>
+    <string name="action_choose_audio">Choose audio</string>
+    <string name="action_configure_ivr">Configure IVR</string>
+    <string name="action_clear_fallback_audio">Clear fallback</string>
 
     <!-- Common actions -->
     <string name="action_cancel">Cancel</string>

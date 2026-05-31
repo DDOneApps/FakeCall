@@ -756,10 +756,14 @@ fun TimingSelectionCard(
 
 @Composable
 fun AudioPreviewCard(
+    modeLabel: String,
     audioLabel: String,
-    audioUri: String,
-    onOpenSettings: () -> Unit,
-    onClearAudio: () -> Unit,
+    helperText: String,
+    previewUri: String,
+    primaryActionLabel: String,
+    onPrimaryAction: () -> Unit,
+    secondaryActionLabel: String? = null,
+    onSecondaryAction: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -775,7 +779,35 @@ fun AudioPreviewCard(
         isPlaying = false
     }
 
-    DisposableEffect(audioUri) {
+    val startPlayback: () -> Unit = {
+        if (previewUri.isNotBlank()) {
+            val uri = runCatching { Uri.parse(previewUri) }.getOrNull()
+            if (uri != null) {
+                stopPlayback()
+                val newPlayer = MediaPlayer()
+                val started = runCatching {
+                    newPlayer.setDataSource(context, uri)
+                    newPlayer.prepare()
+                    newPlayer.setOnCompletionListener {
+                        isPlaying = false
+                        runCatching { it.release() }
+                        if (player === it) {
+                            player = null
+                        }
+                    }
+                    newPlayer.start()
+                }.onFailure {
+                    runCatching { newPlayer.release() }
+                }.isSuccess
+                if (started) {
+                    player = newPlayer
+                    isPlaying = true
+                }
+            }
+        }
+    }
+
+    DisposableEffect(previewUri) {
         onDispose {
             stopPlayback()
         }
@@ -798,121 +830,132 @@ fun AudioPreviewCard(
                 tint = MaterialTheme.colorScheme.onTertiaryContainer
             )
             Column(modifier = Modifier.weight(1f)) {
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                    tonalElevation = 1.dp
+                ) {
+                    Text(
+                        text = modeLabel,
+                        style = MaterialTheme.typography.labelMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                    )
+                }
                 Text(
                     text = audioLabel,
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 8.dp)
                 )
                 Text(
-                    text = stringResource(R.string.audio_preview_hint),
+                    text = helperText,
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
 
         BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
             val useVerticalButtons = maxWidth < 460.dp
+            val hasPreview = previewUri.isNotBlank()
+            val hasSecondary = secondaryActionLabel != null && onSecondaryAction != null
             if (useVerticalButtons) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    ExpressiveButton(
-                        label = if (isPlaying) stringResource(R.string.action_stop) else stringResource(R.string.action_play),
-                        onClick = {
-                            if (audioUri.isBlank()) return@ExpressiveButton
-                            if (isPlaying) {
-                                stopPlayback()
-                            } else {
-                                val uri = runCatching { Uri.parse(audioUri) }.getOrNull() ?: return@ExpressiveButton
-                                val newPlayer = MediaPlayer().apply {
-                                    setDataSource(context, uri)
-                                    prepare()
-                                    start()
-                                    setOnCompletionListener {
-                                        isPlaying = false
-                                        runCatching { release() }
-                                        player = null
-                                    }
+                    if (hasPreview) {
+                        ExpressiveButton(
+                            label = if (isPlaying) stringResource(R.string.action_stop) else stringResource(R.string.action_play),
+                            onClick = {
+                                if (isPlaying) {
+                                    stopPlayback()
+                                } else {
+                                    startPlayback()
                                 }
-                                player = newPlayer
-                                isPlaying = true
-                            }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            leadingIcon = if (isPlaying) Icons.Outlined.Stop else Icons.Outlined.PlayArrow,
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                    ExpressiveButton(
+                        label = primaryActionLabel,
+                        onClick = {
+                            stopPlayback()
+                            onPrimaryAction()
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        leadingIcon = if (isPlaying) Icons.Outlined.Stop else Icons.Outlined.PlayArrow,
-                        enabled = audioUri.isNotBlank(),
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    ExpressiveButton(
-                        label = stringResource(R.string.action_open_settings),
-                        onClick = onOpenSettings,
-                        modifier = Modifier.fillMaxWidth(),
+                        leadingIcon = Icons.Outlined.Tune,
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                     )
-                    ExpressiveButton(
-                        label = stringResource(R.string.action_clear_audio),
-                        onClick = {
-                            stopPlayback()
-                            onClearAudio()
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                        contentColor = MaterialTheme.colorScheme.onSurface
-                    )
+                    if (hasSecondary) {
+                        ExpressiveButton(
+                            label = secondaryActionLabel.orEmpty(),
+                            onClick = {
+                                stopPlayback()
+                                onSecondaryAction?.invoke()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            leadingIcon = Icons.Outlined.Close,
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
             } else {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    ExpressiveButton(
-                        label = if (isPlaying) stringResource(R.string.action_stop) else stringResource(R.string.action_play),
-                        onClick = {
-                            if (audioUri.isBlank()) return@ExpressiveButton
-                            if (isPlaying) {
-                                stopPlayback()
-                            } else {
-                                val uri = runCatching { Uri.parse(audioUri) }.getOrNull() ?: return@ExpressiveButton
-                                val newPlayer = MediaPlayer().apply {
-                                    setDataSource(context, uri)
-                                    prepare()
-                                    start()
-                                    setOnCompletionListener {
-                                        isPlaying = false
-                                        runCatching { release() }
-                                        player = null
-                                    }
+                    if (hasPreview) {
+                        ExpressiveButton(
+                            label = if (isPlaying) stringResource(R.string.action_stop) else stringResource(R.string.action_play),
+                            onClick = {
+                                if (isPlaying) {
+                                    stopPlayback()
+                                } else {
+                                    startPlayback()
                                 }
-                                player = newPlayer
-                                isPlaying = true
-                            }
+                            },
+                            modifier = Modifier.weight(1f),
+                            leadingIcon = if (isPlaying) Icons.Outlined.Stop else Icons.Outlined.PlayArrow,
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                    ExpressiveButton(
+                        label = primaryActionLabel,
+                        onClick = {
+                            stopPlayback()
+                            onPrimaryAction()
                         },
                         modifier = Modifier.weight(1f),
-                        leadingIcon = if (isPlaying) Icons.Outlined.Stop else Icons.Outlined.PlayArrow,
-                        enabled = audioUri.isNotBlank(),
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    ExpressiveButton(
-                        label = stringResource(R.string.action_open_settings),
-                        onClick = onOpenSettings,
-                        modifier = Modifier.weight(1f),
+                        leadingIcon = Icons.Outlined.Tune,
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                     )
-                    ExpressiveButton(
-                        label = stringResource(R.string.action_clear_audio),
-                        onClick = {
-                            stopPlayback()
-                            onClearAudio()
-                        },
-                        modifier = Modifier.weight(1f),
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                        contentColor = MaterialTheme.colorScheme.onSurface
-                    )
+                    if (hasSecondary) {
+                        ExpressiveButton(
+                            label = secondaryActionLabel.orEmpty(),
+                            onClick = {
+                                stopPlayback()
+                                onSecondaryAction?.invoke()
+                            },
+                            modifier = Modifier.weight(1f),
+                            leadingIcon = Icons.Outlined.Close,
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
             }
         }

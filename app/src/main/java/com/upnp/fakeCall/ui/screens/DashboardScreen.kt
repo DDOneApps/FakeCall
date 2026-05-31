@@ -413,11 +413,19 @@ fun DashboardScreen(
                     }
 
                     item {
-                        AudioPreviewCard(
-                            audioLabel = state.selectedAudioName.ifBlank { stringResource(R.string.default_audio_name) },
-                            audioUri = state.selectedAudioUri,
-                            onOpenSettings = onOpenSettings,
+                        val audioPreview = answerPlaybackPreview(
+                            state = state,
                             onClearAudio = viewModel::clearAudioSelection
+                        )
+                        AudioPreviewCard(
+                            modeLabel = audioPreview.modeLabel,
+                            audioLabel = audioPreview.audioLabel,
+                            helperText = audioPreview.helperText,
+                            previewUri = audioPreview.previewUri,
+                            primaryActionLabel = audioPreview.primaryActionLabel,
+                            onPrimaryAction = onOpenSettings,
+                            secondaryActionLabel = audioPreview.secondaryActionLabel,
+                            onSecondaryAction = audioPreview.secondaryAction
                         )
                     }
 
@@ -1075,6 +1083,97 @@ private data class PickerState(
     val flingBehavior: androidx.compose.foundation.gestures.FlingBehavior,
     val itemHeightPx: Int
 )
+
+private data class AnswerPlaybackPreview(
+    val modeLabel: String,
+    val audioLabel: String,
+    val helperText: String,
+    val previewUri: String,
+    val primaryActionLabel: String,
+    val secondaryActionLabel: String? = null,
+    val secondaryAction: (() -> Unit)? = null
+)
+
+@Composable
+private fun answerPlaybackPreview(
+    state: FakeCallUiState,
+    onClearAudio: () -> Unit
+): AnswerPlaybackPreview {
+    val selectedAudioLabel = state.selectedAudioName.ifBlank {
+        stringResource(R.string.audio_preview_selected_audio_fallback)
+    }
+    val rootNode = state.ivrConfig?.let { it.nodes[it.rootId] }
+    val hasCustomIvr = state.ivrConfig?.nodes?.isNotEmpty() == true
+
+    return when {
+        state.isMp3IvrModeEnabled -> {
+            val folderName = state.mp3IvrFolderName.ifBlank {
+                stringResource(R.string.settings_mp3_ivr_no_folder_selected)
+            }
+            val helperText = if (state.mp3IvrFolderUri.isBlank()) {
+                stringResource(R.string.audio_preview_mp3_ivr_missing_folder)
+            } else {
+                stringResource(R.string.audio_preview_mp3_ivr_helper)
+            }
+            AnswerPlaybackPreview(
+                modeLabel = stringResource(R.string.audio_preview_mode_mp3_ivr),
+                audioLabel = folderName,
+                helperText = helperText,
+                previewUri = "",
+                primaryActionLabel = stringResource(R.string.action_configure_ivr)
+            )
+        }
+
+        rootNode?.audioUri?.isNotBlank() == true -> {
+            val rootLabel = rootNode.audioLabel
+                .ifBlank { rootNode.title }
+                .ifBlank { stringResource(R.string.default_ivr_node_title) }
+            AnswerPlaybackPreview(
+                modeLabel = stringResource(R.string.audio_preview_mode_custom_ivr),
+                audioLabel = rootLabel,
+                helperText = stringResource(R.string.audio_preview_custom_ivr_helper),
+                previewUri = rootNode.audioUri,
+                primaryActionLabel = stringResource(R.string.action_configure_ivr)
+            )
+        }
+
+        hasCustomIvr && state.selectedAudioUri.isNotBlank() -> AnswerPlaybackPreview(
+            modeLabel = stringResource(R.string.audio_preview_mode_ivr_fallback),
+            audioLabel = selectedAudioLabel,
+            helperText = stringResource(R.string.audio_preview_ivr_fallback_helper),
+            previewUri = state.selectedAudioUri,
+            primaryActionLabel = stringResource(R.string.action_configure_ivr),
+            secondaryActionLabel = stringResource(R.string.action_clear_fallback_audio),
+            secondaryAction = onClearAudio
+        )
+
+        hasCustomIvr -> AnswerPlaybackPreview(
+            modeLabel = stringResource(R.string.audio_preview_mode_custom_ivr),
+            audioLabel = stringResource(R.string.audio_preview_silent_after_answer),
+            helperText = stringResource(R.string.audio_preview_ivr_silent_helper),
+            previewUri = "",
+            primaryActionLabel = stringResource(R.string.action_configure_ivr)
+        )
+
+        state.selectedAudioUri.isNotBlank() -> AnswerPlaybackPreview(
+            modeLabel = stringResource(R.string.audio_preview_mode_selected_audio),
+            audioLabel = selectedAudioLabel,
+            helperText = stringResource(R.string.audio_preview_selected_audio_helper),
+            previewUri = state.selectedAudioUri,
+            primaryActionLabel = stringResource(R.string.action_change_audio),
+            secondaryActionLabel = stringResource(R.string.action_clear_audio),
+            secondaryAction = onClearAudio
+        )
+
+        else -> AnswerPlaybackPreview(
+            modeLabel = stringResource(R.string.audio_preview_mode_silent),
+            audioLabel = stringResource(R.string.audio_preview_silent_after_answer),
+            helperText = stringResource(R.string.audio_preview_silent_helper),
+            previewUri = "",
+            primaryActionLabel = stringResource(R.string.action_choose_audio)
+        )
+    }
+}
 
 @Composable
 private fun rememberPickerState(initialIndex: Int): PickerState {

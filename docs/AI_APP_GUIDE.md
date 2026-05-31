@@ -515,6 +515,8 @@ When the call is answered, `startVoicePlayback()` chooses content in this order:
 
 Audio playback uses `MediaPlayer`, `USAGE_VOICE_COMMUNICATION`, and loops by default except MP3-folder item playback, which returns to the menu on completion.
 
+The dashboard answer-audio preview mirrors the normal-call portion of this priority. It shows MP3-folder IVR first when enabled, then custom IVR root audio, then selected fallback audio, and finally silence. Keep `DashboardScreen.answerPlaybackPreview()` aligned with `FakeConnection.startVoicePlayback()` whenever this priority changes.
+
 ### 9.3 MP3 Folder IVR Mode
 
 MP3-folder IVR is enabled by prefs:
@@ -956,7 +958,7 @@ It includes:
 - Caller input card
 - Schedule state card
 - Timing controls
-- Audio preview
+- Answer-audio preview that reflects the real answer-time playback priority
 - Bottom action bar
 - Custom call sheet
 - Countdown and exact-time pickers
