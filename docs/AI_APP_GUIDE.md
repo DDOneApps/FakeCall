@@ -974,14 +974,14 @@ Feature areas include:
 
 - Provider setup, including optional provider-name selection from stable SIM card names. `FakeCallViewModel.loadSimProviderOptions()` prefers `TelephonyManager.createForSubscriptionId(...).simOperatorName`, then subscription display name, then carrier name, while filtering transient Wi-Fi-calling labels such as `WiFi`/`VoWiFi`.
 - Calling account status/action
-- Audio file selection and default audio behavior
+- Audio file selection, default audio behavior, and the main IVR/keymap entry point
 - Normal and alarm ring timeout
 - Recording toggle and dashboard quick recording switch
 - Recording folder selection/reset
 - Automation and quick trigger defaults
 - Quick trigger presets and per-preset audio
 - Accessibility settings entry
-- IVR custom mode and MP3-folder mode
+- IVR custom mode and MP3-folder mode inside the IVR/keymap submenu
 - IVR import/export
 - Add/delete/configure IVR nodes and routes
 - About/update check

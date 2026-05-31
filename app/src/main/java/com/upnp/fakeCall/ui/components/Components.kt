@@ -315,7 +315,7 @@ fun CallerInputCard(
     SectionCard(
         title = stringResource(R.string.caller_details_title),
         modifier = modifier,
-        shape = ExpressiveAsymmetricShape
+        shape = ExpressiveCardShape
     ) {
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
             SegmentedButton(

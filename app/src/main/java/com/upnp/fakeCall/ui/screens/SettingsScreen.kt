@@ -399,6 +399,15 @@ fun SettingsScreen(
 
                     item {
                         PreferenceCard(
+                            icon = Icons.Outlined.MusicNote,
+                            title = stringResource(R.string.settings_category_mailbox),
+                            subtitle = stringResource(R.string.settings_mailbox_hub_subtitle),
+                            onClick = { activeSubmenu = SettingsSubmenu.MAILBOX }
+                        )
+                    }
+
+                    item {
+                        PreferenceCard(
                             icon = Icons.Outlined.Mic,
                             title = stringResource(R.string.settings_mic_recording_title),
                             subtitle = if (state.isRecordingEnabled) stringResource(R.string.settings_mic_recording_enabled) else stringResource(R.string.settings_mic_recording_disabled),
@@ -553,17 +562,6 @@ fun SettingsScreen(
                             title = stringResource(R.string.settings_automation_title),
                             subtitle = stringResource(R.string.settings_automation_hub_subtitle),
                             onClick = { activeSubmenu = SettingsSubmenu.AUTOMATION }
-                        )
-                    }
-                    item {
-                        PreferenceCategoryHeader(stringResource(R.string.settings_category_mailbox))
-                    }
-                    item {
-                        PreferenceCard(
-                            icon = Icons.Outlined.Folder,
-                            title = stringResource(R.string.settings_category_mailbox),
-                            subtitle = stringResource(R.string.settings_mailbox_hub_subtitle),
-                            onClick = { activeSubmenu = SettingsSubmenu.MAILBOX }
                         )
                     }
                 }

@@ -323,14 +323,22 @@ fun FakeCallApp(
                     onSelectDashboard = {
                         if (currentRoute != ROUTE_DASHBOARD) {
                             navController.navigate(ROUTE_DASHBOARD) {
+                                popUpTo(ROUTE_DASHBOARD) {
+                                    saveState = true
+                                }
                                 launchSingleTop = true
+                                restoreState = true
                             }
                         }
                     },
                     onSelectAlarm = {
                         if (currentRoute != ROUTE_ALARM) {
                             navController.navigate(ROUTE_ALARM) {
+                                popUpTo(ROUTE_DASHBOARD) {
+                                    saveState = true
+                                }
                                 launchSingleTop = true
+                                restoreState = true
                             }
                         }
                     }
