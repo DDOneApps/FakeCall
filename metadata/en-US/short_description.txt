@@ -1,1 +1,1 @@
-An Android application to simulate incoming calls using Android‘s native APIs.
+Simulate incoming calls with Android's native phone UI

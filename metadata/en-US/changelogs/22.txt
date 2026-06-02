@@ -1,3 +1,5 @@
-* added contact support with favourites feature.
-* Improved IVR description
-* added "MP3-Player" IVR mode
+<ul>
+<li> added contact support with favourites feature.</li>
+<li> Improved IVR description</li>
+<li> added "MP3-Player" IVR mode</li>
+</ul>

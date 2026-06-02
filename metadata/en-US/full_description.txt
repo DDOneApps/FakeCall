@@ -1,17 +1,17 @@
-Ever wanted to get that Feature of old Samsung phones to simulate an incoming call with audio on the originial phone app?
-Introducing FakeCall. Unlike other apps that merely mock a UI, this app integrates directly with the Android Telecom Framework to provide an indistinguishable calling experience. It has many features to make the call as real as possible.
+FakeCall schedules simulated incoming calls using Android's Telecom framework, so the call appears in the device's regular phone experience instead of a custom fake-call screen.
 
+<b>Features:</b>
 
-<h1>Features:</h1>
+<ul>
+<li><b>Native phone UI:</b> incoming fake calls are routed through Android Telecom.</li>
+<li><b>Scheduling:</b> start a call after a delay or from saved quick-trigger presets.</li>
+<li><b>Custom caller details:</b> choose the displayed caller name, number, photo, ringtone behavior, and SIM/provider label.</li>
+<li><b>Answer audio:</b> keep the call silent, play one selected audio file, use a folder-based MP3 IVR, or configure custom keypad audio flows.</li>
+<li><b>Alarm mode:</b> create alarms that use fake-call behavior and optional spoken messages.</li>
+<li><b>Call history:</b> optional call-log integration makes simulated calls easier to review later.</li>
+<li><b>Recording:</b> optionally record microphone audio during a fake call.</li>
+<li><b>Automation:</b> trigger calls from compatible automation apps or ADB via broadcast intents.</li>
+<li><b>Shortcuts:</b> use app shortcuts, Quick Settings tiles, and the accessibility shortcut for faster triggering.</li>
+</ul>
 
-
--  <b>Original Dialer:</b> FakeCall uses your real Phone app to simulate the incoming Call by creating [a Phone Account in android's TelecomManager](https://developer.android.com/reference/android/telecom/TelecomManager)
--  <b>Customizable:</b> The app lets you customize the name of the fake phone account in the settings to match your real service provider.
--  <b>Schedule:</b> Set exact Timers for when the call should come in
--  <b>Audio Support:</b> You can upload audio files that play when the call is answered
--  <b>Call History:</b> Simulated calls are being shown in call history
--  <b>IVR Mode:</b> assign audio files to keys and make sub-menus
--  <b>Recording:</b> record microphone audio of a Fake call
--  <b>Automation API:</b> trigger calls from Tasker, MacroDroid, or ADB via a broadcast intent
--  <b>Accessibility Shortcut:</b> schedule a fake call from the system accessibility button using saved defaults
--  <b>Quick Trigger Presets:</b> save up to 5 presets and expose them as launcher app actions + Quick Settings tiles
+The app is free software and is designed to work without accounts, ads, or analytics.
