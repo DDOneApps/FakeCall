@@ -1,0 +1,7 @@
+<ul>
+<li>Unified answer-audio settings for silent, single-file, custom IVR, and MP3-folder IVR modes.</li>
+<li>Updated the dashboard preview to show what plays after a fake call is answered.</li>
+<li>Added an alarm voice-message repeat option.</li>
+<li>Made call recording disabled by default and added a dashboard switch.</li>
+<li>Improved SIM/provider naming by preferring stable SIM-card names where available.</li>
+</ul>

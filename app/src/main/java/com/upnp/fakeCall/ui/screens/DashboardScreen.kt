@@ -10,6 +10,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -51,6 +52,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberTimePickerState
@@ -571,15 +573,72 @@ private fun RecordingQuickToggleCard(
     enabled: Boolean,
     onEnabledChange: (Boolean) -> Unit
 ) {
+    val cardScale by animateFloatAsState(
+        targetValue = if (enabled) 1.015f else 1f,
+        animationSpec = expressiveSpring(),
+        label = "recordingCardScale"
+    )
+    val containerColor by animateColorAsState(
+        targetValue = if (enabled) {
+            MaterialTheme.colorScheme.primaryContainer
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerHigh
+        },
+        animationSpec = expressiveSpring(),
+        label = "recordingContainerColor"
+    )
+    val titleColor by animateColorAsState(
+        targetValue = if (enabled) {
+            MaterialTheme.colorScheme.onPrimaryContainer
+        } else {
+            MaterialTheme.colorScheme.onSurface
+        },
+        animationSpec = expressiveSpring(),
+        label = "recordingTitleColor"
+    )
+    val supportingColor by animateColorAsState(
+        targetValue = if (enabled) {
+            MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.78f)
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        animationSpec = expressiveSpring(),
+        label = "recordingSupportingColor"
+    )
+    val iconBackgroundColor by animateColorAsState(
+        targetValue = if (enabled) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.surfaceContainer
+        },
+        animationSpec = expressiveSpring(),
+        label = "recordingIconBackground"
+    )
+    val iconTint by animateColorAsState(
+        targetValue = if (enabled) {
+            MaterialTheme.colorScheme.onPrimary
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        animationSpec = expressiveSpring(),
+        label = "recordingIconTint"
+    )
+
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = cardScale
+                scaleY = cardScale
+            },
         tonalElevation = 1.dp,
         shape = RoundedCornerShape(28.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh
+        color = containerColor
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .animateContentSize(animationSpec = expressiveSpring())
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp)
@@ -588,24 +647,20 @@ private fun RecordingQuickToggleCard(
                 imageVector = Icons.Outlined.Mic,
                 contentDescription = null,
                 shape = CircleShape,
-                backgroundColor = if (enabled) {
-                    MaterialTheme.colorScheme.primaryContainer
-                } else {
-                    MaterialTheme.colorScheme.surfaceContainer
-                },
-                tint = if (enabled) {
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
+                backgroundColor = iconBackgroundColor,
+                tint = iconTint,
                 isActive = enabled
             )
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .animateContentSize(animationSpec = expressiveSpring())
+            ) {
                 Text(
                     text = stringResource(R.string.dashboard_recording_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = titleColor
                 )
                 Text(
                     text = if (enabled) {
@@ -614,12 +669,20 @@ private fun RecordingQuickToggleCard(
                         stringResource(R.string.dashboard_recording_disabled)
                     },
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = supportingColor
                 )
             }
             Switch(
                 checked = enabled,
-                onCheckedChange = onEnabledChange
+                onCheckedChange = onEnabledChange,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                    checkedTrackColor = MaterialTheme.colorScheme.primary,
+                    checkedBorderColor = MaterialTheme.colorScheme.primary,
+                    uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    uncheckedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                )
             )
         }
     }

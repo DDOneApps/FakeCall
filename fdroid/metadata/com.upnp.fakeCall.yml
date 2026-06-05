@@ -1,0 +1,30 @@
+Categories:
+  - Phone & SMS
+License: GPL-3.0-only
+AuthorName: DDOneApps
+SourceCode: https://github.com/DDOneApps/FakeCall
+IssueTracker: https://github.com/DDOneApps/FakeCall/issues
+Changelog: https://github.com/DDOneApps/FakeCall/releases
+
+AutoName: Fake Call
+
+RepoType: git
+Repo: https://github.com/DDOneApps/FakeCall.git
+
+Binaries: https://github.com/DDOneApps/FakeCall/releases/download/v%v/app-release-full.apk
+
+Builds:
+  - versionName: '2.5'
+    versionCode: 25
+    commit: 517acbf0862472ee08e6bd3e822c7ea22d72cc1b
+    subdir: app
+    gradle:
+      - yes
+
+AllowedAPKSigningKeys: bfa2a6906d3c2f650717c4e0c2f5ffc47c60fa7202bc3a2c7429f8a9e59bde80
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+UpdateCheckData: app/build.gradle.kts|versionCode = (\d+)|.|versionName = "([^"]+)"
+CurrentVersion: '2.5'
+CurrentVersionCode: 25

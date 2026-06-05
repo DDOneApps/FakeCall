@@ -3,12 +3,21 @@ package com.upnp.fakeCall.ui.components
 import android.graphics.BitmapFactory
 import android.media.MediaPlayer
 import android.net.Uri
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
@@ -162,6 +171,16 @@ fun AnimatedIcon(
     onClick: (() -> Unit)? = null
 ) {
     val rotation = remember { Animatable(0f) }
+    val animatedBackgroundColor by animateColorAsState(
+        targetValue = backgroundColor,
+        animationSpec = expressiveSpring(),
+        label = "iconBackgroundColor"
+    )
+    val animatedTint by animateColorAsState(
+        targetValue = tint,
+        animationSpec = expressiveSpring(),
+        label = "iconTint"
+    )
     val pulse by animateFloatAsState(
         targetValue = if (isActive || isRinging) 1.05f else 1f,
         animationSpec = expressiveSpring(),
@@ -184,7 +203,7 @@ fun AnimatedIcon(
         modifier = modifier
             .size(size)
             .clip(shape)
-            .background(backgroundColor)
+            .background(animatedBackgroundColor)
             .graphicsLayer {
                 rotationZ = rotation.value
                 scaleX = pulse
@@ -196,7 +215,7 @@ fun AnimatedIcon(
         androidx.compose.material3.Icon(
             imageVector = imageVector,
             contentDescription = contentDescription,
-            tint = tint
+            tint = animatedTint
         )
     }
 }
@@ -232,8 +251,16 @@ fun ExpressiveButton(
     contentColor: Color = MaterialTheme.colorScheme.onPrimary,
     shape: Shape = RoundedCornerShape(24.dp)
 ) {
-    val background = if (enabled) containerColor else MaterialTheme.colorScheme.surfaceContainerHigh
-    val foreground = if (enabled) contentColor else MaterialTheme.colorScheme.onSurfaceVariant
+    val background by animateColorAsState(
+        targetValue = if (enabled) containerColor else MaterialTheme.colorScheme.surfaceContainerHigh,
+        animationSpec = expressiveSpring(),
+        label = "expressiveButtonBackground"
+    )
+    val foreground by animateColorAsState(
+        targetValue = if (enabled) contentColor else MaterialTheme.colorScheme.onSurfaceVariant,
+        animationSpec = expressiveSpring(),
+        label = "expressiveButtonForeground"
+    )
 
     Surface(
         modifier = modifier
@@ -246,23 +273,40 @@ fun ExpressiveButton(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .animateContentSize(animationSpec = expressiveSpring())
                 .padding(horizontal = 18.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
             if (leadingIcon != null) {
-                androidx.compose.material3.Icon(
-                    imageVector = leadingIcon,
-                    contentDescription = null
-                )
+                AnimatedContent(
+                    targetState = leadingIcon,
+                    transitionSpec = {
+                        fadeIn(animationSpec = expressiveSpring()) togetherWith fadeOut(animationSpec = expressiveSpring())
+                    },
+                    label = "expressiveButtonIcon"
+                ) { icon ->
+                    androidx.compose.material3.Icon(
+                        imageVector = icon,
+                        contentDescription = null
+                    )
+                }
                 Spacer(modifier = Modifier.width(10.dp))
             }
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelLarge,
-                maxLines = maxLines,
-                textAlign = TextAlign.Center
-            )
+            AnimatedContent(
+                targetState = label,
+                transitionSpec = {
+                    fadeIn(animationSpec = expressiveSpring()) togetherWith fadeOut(animationSpec = expressiveSpring())
+                },
+                label = "expressiveButtonLabel"
+            ) { animatedLabel ->
+                Text(
+                    text = animatedLabel,
+                    style = MaterialTheme.typography.labelLarge,
+                    maxLines = maxLines,
+                    textAlign = TextAlign.Center
+                )
+            }
         }
     }
 }
@@ -769,6 +813,30 @@ fun AudioPreviewCard(
     val context = LocalContext.current
     var isPlaying by remember { mutableStateOf(false) }
     var player by remember { mutableStateOf<MediaPlayer?>(null) }
+    val hasPreview = previewUri.isNotBlank()
+    val hasSecondary = secondaryActionLabel != null && onSecondaryAction != null
+    val accentContainerTarget = when {
+        isPlaying -> MaterialTheme.colorScheme.primaryContainer
+        hasPreview -> MaterialTheme.colorScheme.tertiaryContainer
+        hasSecondary -> MaterialTheme.colorScheme.secondaryContainer
+        else -> MaterialTheme.colorScheme.surfaceContainerHighest
+    }
+    val accentContentTarget = when {
+        isPlaying -> MaterialTheme.colorScheme.onPrimaryContainer
+        hasPreview -> MaterialTheme.colorScheme.onTertiaryContainer
+        hasSecondary -> MaterialTheme.colorScheme.onSecondaryContainer
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    val accentContainer by animateColorAsState(
+        targetValue = accentContainerTarget,
+        animationSpec = expressiveSpring(),
+        label = "audioPreviewAccentContainer"
+    )
+    val accentContent by animateColorAsState(
+        targetValue = accentContentTarget,
+        animationSpec = expressiveSpring(),
+        label = "audioPreviewAccentContent"
+    )
 
     val stopPlayback: () -> Unit = {
         player?.run {
@@ -815,10 +883,12 @@ fun AudioPreviewCard(
 
     SectionCard(
         title = stringResource(R.string.audio_preview_title),
-        modifier = modifier
+        modifier = modifier.animateContentSize(animationSpec = expressiveSpring())
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .animateContentSize(animationSpec = expressiveSpring()),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -826,51 +896,84 @@ fun AudioPreviewCard(
                 imageVector = Icons.Outlined.VolumeUp,
                 contentDescription = null,
                 shape = CircleShape,
-                backgroundColor = MaterialTheme.colorScheme.tertiaryContainer,
-                tint = MaterialTheme.colorScheme.onTertiaryContainer
+                backgroundColor = accentContainer,
+                tint = accentContent,
+                isActive = isPlaying
             )
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .animateContentSize(animationSpec = expressiveSpring())
+            ) {
                 Surface(
                     shape = RoundedCornerShape(999.dp),
-                    color = MaterialTheme.colorScheme.tertiaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                    color = accentContainer,
+                    contentColor = accentContent,
                     tonalElevation = 1.dp
                 ) {
+                    AnimatedContent(
+                        targetState = modeLabel,
+                        transitionSpec = {
+                            fadeIn(animationSpec = expressiveSpring()) togetherWith fadeOut(animationSpec = expressiveSpring())
+                        },
+                        label = "audioPreviewMode"
+                    ) { label ->
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                        )
+                    }
+                }
+                AnimatedContent(
+                    targetState = audioLabel,
+                    transitionSpec = {
+                        fadeIn(animationSpec = expressiveSpring()) togetherWith fadeOut(animationSpec = expressiveSpring())
+                    },
+                    label = "audioPreviewLabel"
+                ) { label ->
                     Text(
-                        text = modeLabel,
-                        style = MaterialTheme.typography.labelMedium,
-                        maxLines = 1,
+                        text = label,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                        modifier = Modifier.padding(top = 8.dp)
                     )
                 }
-                Text(
-                    text = audioLabel,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-                Text(
-                    text = helperText,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis
-                )
+                AnimatedContent(
+                    targetState = helperText,
+                    transitionSpec = {
+                        fadeIn(animationSpec = expressiveSpring()) togetherWith fadeOut(animationSpec = expressiveSpring())
+                    },
+                    label = "audioPreviewHelper"
+                ) { text ->
+                    Text(
+                        text = text,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
 
         BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
             val useVerticalButtons = maxWidth < 460.dp
-            val hasPreview = previewUri.isNotBlank()
-            val hasSecondary = secondaryActionLabel != null && onSecondaryAction != null
             if (useVerticalButtons) {
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .animateContentSize(animationSpec = expressiveSpring()),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    if (hasPreview) {
+                    AnimatedVisibility(
+                        visible = hasPreview,
+                        enter = fadeIn(animationSpec = expressiveSpring()) + expandVertically(animationSpec = expressiveSpring()),
+                        exit = fadeOut(animationSpec = expressiveSpring()) + shrinkVertically(animationSpec = expressiveSpring())
+                    ) {
                         ExpressiveButton(
                             label = if (isPlaying) stringResource(R.string.action_stop) else stringResource(R.string.action_play),
                             onClick = {
@@ -897,7 +1000,11 @@ fun AudioPreviewCard(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                     )
-                    if (hasSecondary) {
+                    AnimatedVisibility(
+                        visible = hasSecondary,
+                        enter = fadeIn(animationSpec = expressiveSpring()) + expandVertically(animationSpec = expressiveSpring()),
+                        exit = fadeOut(animationSpec = expressiveSpring()) + shrinkVertically(animationSpec = expressiveSpring())
+                    ) {
                         ExpressiveButton(
                             label = secondaryActionLabel.orEmpty(),
                             onClick = {
@@ -913,10 +1020,17 @@ fun AudioPreviewCard(
                 }
             } else {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .animateContentSize(animationSpec = expressiveSpring()),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    if (hasPreview) {
+                    AnimatedVisibility(
+                        modifier = Modifier.weight(1f),
+                        visible = hasPreview,
+                        enter = fadeIn(animationSpec = expressiveSpring()) + expandHorizontally(animationSpec = expressiveSpring()),
+                        exit = fadeOut(animationSpec = expressiveSpring()) + shrinkHorizontally(animationSpec = expressiveSpring())
+                    ) {
                         ExpressiveButton(
                             label = if (isPlaying) stringResource(R.string.action_stop) else stringResource(R.string.action_play),
                             onClick = {
@@ -926,7 +1040,7 @@ fun AudioPreviewCard(
                                     startPlayback()
                                 }
                             },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.fillMaxWidth(),
                             leadingIcon = if (isPlaying) Icons.Outlined.Stop else Icons.Outlined.PlayArrow,
                             containerColor = MaterialTheme.colorScheme.primaryContainer,
                             contentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -943,14 +1057,19 @@ fun AudioPreviewCard(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                     )
-                    if (hasSecondary) {
+                    AnimatedVisibility(
+                        modifier = Modifier.weight(1f),
+                        visible = hasSecondary,
+                        enter = fadeIn(animationSpec = expressiveSpring()) + expandHorizontally(animationSpec = expressiveSpring()),
+                        exit = fadeOut(animationSpec = expressiveSpring()) + shrinkHorizontally(animationSpec = expressiveSpring())
+                    ) {
                         ExpressiveButton(
                             label = secondaryActionLabel.orEmpty(),
                             onClick = {
                                 stopPlayback()
                                 onSecondaryAction?.invoke()
                             },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.fillMaxWidth(),
                             leadingIcon = Icons.Outlined.Close,
                             containerColor = MaterialTheme.colorScheme.surfaceContainer,
                             contentColor = MaterialTheme.colorScheme.onSurface
