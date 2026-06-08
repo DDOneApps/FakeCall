@@ -116,10 +116,10 @@
     <string name="settings_recording_folder_subtitle">Save to: %s</string>
     <string name="settings_reset_recording_folder_title">Reset recording folder</string>
     <string name="settings_reset_recording_folder_subtitle">Use Downloads/FakeCall</string>
-    <string name="settings_category_automation">Custom presets and automation</string>
-    <string name="settings_automation_title">Custom presets and automation</string>
-    <string name="settings_automation_subtitle">Used by Quick Settings tiles, home screen shortcuts, widget, accessibility shortcut, and external API intents.</string>
-    <string name="settings_automation_hub_subtitle">Manage presets, shortcuts, widget behavior, accessibility trigger, and API defaults in one place.</string>
+    <string name="settings_category_automation">Automation</string>
+    <string name="settings_automation_title">Automation &amp; Quick Trigger Defaults</string>
+    <string name="settings_automation_subtitle">Used by external intents and the accessibility shortcut.</string>
+    <string name="settings_automation_hub_subtitle">Manage external triggers, accessibility shortcut and defaults in one place.</string>
     <string name="settings_automation_defaults_title">Quick Trigger Defaults</string>
     <string name="settings_automation_api_title">Automation API</string>
     <string name="settings_default_caller_name_label">Default caller name</string>
@@ -140,7 +140,7 @@
     <string name="settings_set_as_default_for_accessibility">Set as accessibility default</string>
     <string name="settings_default_preset_selected">Accessibility default</string>
     <string name="settings_apply_to_defaults">Apply To Defaults</string>
-    <string name="settings_presets_note">Presets are used for launcher shortcuts, Quick Settings tiles, widget actions, accessibility default behavior, and API fallback values.</string>
+    <string name="settings_presets_note">Presets appear as app actions on launcher long-press and as Quick Settings tiles (Preset 1-5).</string>
     <string name="settings_automation_action_note">Action: `com.upnp.fakeCall.TRIGGER` with extras `caller_name`, `caller_number`, and `delay`.</string>
     <string name="widget_contact_picker_title">Favorite Contact</string>
     <string name="widget_timing_picker_title">Timing</string>
@@ -222,7 +222,7 @@
     <string name="timing_title">Timing</string>
     <string name="label_saved_presets">Saved presets</string>
     <string name="cd_remove_preset">Remove preset</string>
-    <string name="audio_preview_title">Answer audio</string>
+    <string name="audio_preview_title">Audio Preview</string>
     <string name="audio_preview_hint">Tap to change or disable audio.</string>
     <string name="audio_preview_mode_mp3_ivr">MP3 IVR folder</string>
     <string name="audio_preview_mode_custom_ivr">Custom IVR</string>
