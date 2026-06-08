@@ -14,14 +14,20 @@ import org.json.JSONObject
 data class QuickTriggerDefaults(
     val callerName: String = "",
     val callerNumber: String = "",
-    val delaySeconds: Int = QuickTriggerManager.DEFAULT_DELAY_SECONDS
+    val delaySeconds: Int = QuickTriggerManager.DEFAULT_DELAY_SECONDS,
+    val useCustomAudioOverride: Boolean = false,
+    val customAudioUri: String = "",
+    val customAudioName: String = ""
 )
 
 data class TriggerScheduleRequest(
     val callerName: String,
     val callerNumber: String,
     val delaySeconds: Int,
-    val providerName: String
+    val providerName: String,
+    val usePresetAudioOverride: Boolean = false,
+    val presetAudioUri: String = "",
+    val presetAudioName: String = ""
 )
 
 data class QuickTriggerPreset(
@@ -29,7 +35,10 @@ data class QuickTriggerPreset(
     val title: String,
     val callerName: String,
     val callerNumber: String,
-    val delaySeconds: Int
+    val delaySeconds: Int,
+    val useCustomAudio: Boolean = false,
+    val customAudioUri: String = "",
+    val customAudioName: String = ""
 )
 
 enum class QuickTriggerExecution {
@@ -54,8 +63,15 @@ object QuickTriggerManager {
     private const val KEY_QUICK_TRIGGER_CALLER_NAME = "quick_trigger_caller_name"
     private const val KEY_QUICK_TRIGGER_CALLER_NUMBER = "quick_trigger_caller_number"
     private const val KEY_QUICK_TRIGGER_DELAY_SECONDS = "quick_trigger_delay_seconds"
+    private const val KEY_QUICK_TRIGGER_USE_CUSTOM_AUDIO = "quick_trigger_use_custom_audio"
+    private const val KEY_QUICK_TRIGGER_CUSTOM_AUDIO_URI = "quick_trigger_custom_audio_uri"
+    private const val KEY_QUICK_TRIGGER_CUSTOM_AUDIO_NAME = "quick_trigger_custom_audio_name"
     private const val KEY_QUICK_TRIGGER_PRESETS = "quick_trigger_presets_v1"
     private const val KEY_ACTIVE_PRESET_SLOT = "quick_trigger_active_preset_slot"
+    private const val KEY_DEFAULT_PRESET_SLOT = "quick_trigger_default_preset_slot"
+    private const val KEY_RUNTIME_AUDIO_OVERRIDE_ENABLED = "runtime_audio_override_enabled"
+    private const val KEY_RUNTIME_AUDIO_OVERRIDE_URI = "runtime_audio_override_uri"
+    private const val KEY_RUNTIME_AUDIO_OVERRIDE_NAME = "runtime_audio_override_name"
     private const val SHORTCUT_ID_PREFIX = "quick_trigger_preset_"
     const val DEFAULT_DELAY_SECONDS = 10
     const val MAX_PRESETS = 5
@@ -72,10 +88,16 @@ object QuickTriggerManager {
             KEY_QUICK_TRIGGER_DELAY_SECONDS,
             prefs.getInt(KEY_DELAY_SECONDS, DEFAULT_DELAY_SECONDS)
         ).coerceAtLeast(0)
+        val useCustomAudioOverride = prefs.getBoolean(KEY_QUICK_TRIGGER_USE_CUSTOM_AUDIO, false)
+        val customAudioUri = prefs.getString(KEY_QUICK_TRIGGER_CUSTOM_AUDIO_URI, "").orEmpty()
+        val customAudioName = prefs.getString(KEY_QUICK_TRIGGER_CUSTOM_AUDIO_NAME, "").orEmpty()
         return QuickTriggerDefaults(
             callerName = callerName,
             callerNumber = callerNumber,
-            delaySeconds = delaySeconds
+            delaySeconds = delaySeconds,
+            useCustomAudioOverride = useCustomAudioOverride,
+            customAudioUri = customAudioUri,
+            customAudioName = customAudioName
         )
     }
 
@@ -85,6 +107,9 @@ object QuickTriggerManager {
             .putString(KEY_QUICK_TRIGGER_CALLER_NAME, defaults.callerName)
             .putString(KEY_QUICK_TRIGGER_CALLER_NUMBER, defaults.callerNumber)
             .putInt(KEY_QUICK_TRIGGER_DELAY_SECONDS, defaults.delaySeconds.coerceAtLeast(0))
+            .putBoolean(KEY_QUICK_TRIGGER_USE_CUSTOM_AUDIO, defaults.useCustomAudioOverride)
+            .putString(KEY_QUICK_TRIGGER_CUSTOM_AUDIO_URI, defaults.customAudioUri)
+            .putString(KEY_QUICK_TRIGGER_CUSTOM_AUDIO_NAME, defaults.customAudioName)
             .apply()
     }
 
@@ -107,10 +132,16 @@ object QuickTriggerManager {
             title = title,
             callerName = defaults.callerName,
             callerNumber = defaults.callerNumber,
-            delaySeconds = defaults.delaySeconds
+            delaySeconds = defaults.delaySeconds,
+            useCustomAudio = defaults.useCustomAudioOverride,
+            customAudioUri = defaults.customAudioUri,
+            customAudioName = defaults.customAudioName
         )
         current.add(preset)
         savePresets(context, current)
+        if (current.size == 1) {
+            saveDefaultPresetSlot(context, 1)
+        }
         updateLauncherShortcuts(context)
         requestTileRefresh(context)
         return QuickTriggerPresetSaveResult.SAVED
@@ -133,7 +164,10 @@ object QuickTriggerManager {
                             title = item.optString("title").orEmpty().ifBlank { callerNumber }.take(30),
                             callerName = item.optString("callerName").orEmpty(),
                             callerNumber = callerNumber,
-                            delaySeconds = item.optInt("delaySeconds", DEFAULT_DELAY_SECONDS).coerceAtLeast(0)
+                            delaySeconds = item.optInt("delaySeconds", DEFAULT_DELAY_SECONDS).coerceAtLeast(0),
+                            useCustomAudio = item.optBoolean("useCustomAudio", false),
+                            customAudioUri = item.optString("customAudioUri").orEmpty(),
+                            customAudioName = item.optString("customAudioName").orEmpty()
                         )
                     )
                 }
@@ -153,6 +187,12 @@ object QuickTriggerManager {
             activeSlot == slot -> saveActivePresetSlot(context, null)
             activeSlot > slot -> saveActivePresetSlot(context, activeSlot - 1)
         }
+        val defaultSlot = loadDefaultPresetSlot(context, current)
+        when {
+            defaultSlot == null -> Unit
+            defaultSlot == slot -> saveDefaultPresetSlot(context, null)
+            defaultSlot > slot -> saveDefaultPresetSlot(context, defaultSlot - 1)
+        }
         updateLauncherShortcuts(context)
         requestTileRefresh(context)
         return true
@@ -165,7 +205,10 @@ object QuickTriggerManager {
             defaults = QuickTriggerDefaults(
                 callerName = preset.callerName,
                 callerNumber = preset.callerNumber,
-                delaySeconds = preset.delaySeconds
+                delaySeconds = preset.delaySeconds,
+                useCustomAudioOverride = preset.useCustomAudio,
+                customAudioUri = preset.customAudioUri,
+                customAudioName = preset.customAudioName
             )
         )
         return true
@@ -175,6 +218,44 @@ object QuickTriggerManager {
         val index = slot - 1
         val presets = loadPresets(context)
         return presets.getOrNull(index)
+    }
+
+    fun setDefaultPresetSlot(context: Context, slot: Int?): Boolean {
+        if (slot == null) {
+            saveDefaultPresetSlot(context, null)
+            return true
+        }
+        val presets = loadPresets(context)
+        val index = slot - 1
+        if (index !in presets.indices) return false
+        saveDefaultPresetSlot(context, slot)
+        return true
+    }
+
+    fun loadDefaultPresetSlot(context: Context): Int? {
+        return loadDefaultPresetSlot(context, loadPresets(context))
+    }
+
+    fun updatePresetAudioMode(context: Context, slot: Int, enabled: Boolean): Boolean {
+        return updatePreset(context, slot) { preset ->
+            preset.copy(useCustomAudio = enabled)
+        }
+    }
+
+    fun updatePresetAudio(context: Context, slot: Int, audioUri: String, audioName: String): Boolean {
+        return updatePreset(context, slot) { preset ->
+            preset.copy(
+                useCustomAudio = true,
+                customAudioUri = audioUri,
+                customAudioName = audioName
+            )
+        }
+    }
+
+    fun clearPresetAudio(context: Context, slot: Int): Boolean {
+        return updatePreset(context, slot) { preset ->
+            preset.copy(customAudioUri = "", customAudioName = "")
+        }
     }
 
     fun loadActivePresetSlot(context: Context): Int? {
@@ -187,11 +268,20 @@ object QuickTriggerManager {
 
     fun executePreset(context: Context, slot: Int): QuickTriggerExecution {
         val preset = getPresetBySlot(context, slot) ?: return QuickTriggerExecution.FAILED
-        return executeFromInputs(
+        val request = resolveRequest(
             context = context,
             callerName = preset.callerName,
             callerNumber = preset.callerNumber,
-            delaySeconds = preset.delaySeconds,
+            delaySeconds = preset.delaySeconds
+        )?.copy(
+            usePresetAudioOverride = preset.useCustomAudio,
+            presetAudioUri = preset.customAudioUri,
+            presetAudioName = preset.customAudioName
+        )
+            ?: return QuickTriggerExecution.FAILED
+        return execute(
+            context = context,
+            request = request,
             presetSlot = slot
         )
     }
@@ -209,6 +299,10 @@ object QuickTriggerManager {
     }
 
     fun executeFromDefaults(context: Context): QuickTriggerExecution {
+        val defaultSlot = loadDefaultPresetSlot(context)
+        if (defaultSlot != null) {
+            return executePreset(context, defaultSlot)
+        }
         val defaults = loadDefaults(context)
         return executeFromInputs(
             context = context,
@@ -239,7 +333,10 @@ object QuickTriggerManager {
             callerName = resolvedName,
             callerNumber = resolvedNumber,
             delaySeconds = resolvedDelay.coerceAtLeast(0),
-            providerName = providerName
+            providerName = providerName,
+            usePresetAudioOverride = defaults.useCustomAudioOverride,
+            presetAudioUri = defaults.customAudioUri,
+            presetAudioName = defaults.customAudioName
         )
     }
 
@@ -277,9 +374,13 @@ object QuickTriggerManager {
     ): QuickTriggerExecution {
         val now = System.currentTimeMillis()
         val triggerAtMillis = now + request.delaySeconds * 1_000L
+        val runtimeAudioUri = request.presetAudioUri.takeIf {
+            request.usePresetAudioOverride && it.isNotBlank()
+        }
+        val runtimeAudioName = request.presetAudioName.takeIf { runtimeAudioUri != null }
 
         return if (request.delaySeconds == 0 || triggerAtMillis < now + 100L) {
-            if (triggerImmediately(context, request)) {
+            if (triggerImmediately(context, request, runtimeAudioUri, runtimeAudioName)) {
                 saveActivePresetSlot(context, null)
                 requestTileRefresh(context)
                 QuickTriggerExecution.IMMEDIATE
@@ -287,7 +388,7 @@ object QuickTriggerManager {
                 QuickTriggerExecution.FAILED
             }
         } else {
-            if (scheduleAlarm(context, request, triggerAtMillis)) {
+            if (scheduleAlarm(context, request, triggerAtMillis, runtimeAudioUri, runtimeAudioName)) {
                 saveActivePresetSlot(context, presetSlot)
                 requestTileRefresh(context)
                 QuickTriggerExecution.SCHEDULED
@@ -300,15 +401,20 @@ object QuickTriggerManager {
     private fun scheduleAlarm(
         context: Context,
         request: TriggerScheduleRequest,
-        triggerAtMillis: Long
+        triggerAtMillis: Long,
+        runtimeAudioUri: String?,
+        runtimeAudioName: String?
     ): Boolean {
         FakeCallAlarmScheduler.cancel(context)
+        configureRuntimeAudioOverride(context, null, null)
         val scheduled = FakeCallAlarmScheduler.scheduleExact(
             context = context,
             triggerAtMillis = triggerAtMillis,
             callerName = request.callerName,
             callerNumber = request.callerNumber,
-            providerName = request.providerName
+            providerName = request.providerName,
+            runtimeAudioUri = runtimeAudioUri,
+            runtimeAudioName = runtimeAudioName
         )
 
         if (scheduled) {
@@ -323,8 +429,14 @@ object QuickTriggerManager {
         return scheduled
     }
 
-    private fun triggerImmediately(context: Context, request: TriggerScheduleRequest): Boolean {
+    private fun triggerImmediately(
+        context: Context,
+        request: TriggerScheduleRequest,
+        runtimeAudioUri: String?,
+        runtimeAudioName: String?
+    ): Boolean {
         FakeCallAlarmScheduler.cancel(context)
+        configureRuntimeAudioOverride(context, runtimeAudioUri, runtimeAudioName)
         val telecomHelper = TelecomHelper(context)
         telecomHelper.registerOrUpdatePhoneAccount(request.providerName)
         val triggered = if (telecomHelper.isAccountEnabled()) {
@@ -340,6 +452,8 @@ object QuickTriggerManager {
                 .putString(KEY_CALLER_NUMBER, request.callerNumber)
                 .remove(KEY_TIMER_ENDS_AT)
                 .apply()
+        } else {
+            configureRuntimeAudioOverride(context, null, null)
         }
 
         return triggered
@@ -355,6 +469,9 @@ object QuickTriggerManager {
                     .put("callerName", preset.callerName)
                     .put("callerNumber", preset.callerNumber)
                     .put("delaySeconds", preset.delaySeconds)
+                    .put("useCustomAudio", preset.useCustomAudio)
+                    .put("customAudioUri", preset.customAudioUri)
+                    .put("customAudioName", preset.customAudioName)
             )
         }
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -367,6 +484,13 @@ object QuickTriggerManager {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
             .putInt(KEY_ACTIVE_PRESET_SLOT, slot ?: -1)
+            .apply()
+    }
+
+    private fun saveDefaultPresetSlot(context: Context, slot: Int?) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putInt(KEY_DEFAULT_PRESET_SLOT, slot ?: -1)
             .apply()
     }
 
@@ -386,5 +510,51 @@ object QuickTriggerManager {
 
     private fun formatDelay(context: Context, seconds: Int): String {
         return DelayFormatter.formatShort(context, seconds)
+    }
+
+    private fun updatePreset(
+        context: Context,
+        slot: Int,
+        updater: (QuickTriggerPreset) -> QuickTriggerPreset
+    ): Boolean {
+        val index = slot - 1
+        val current = loadPresets(context).toMutableList()
+        if (index !in current.indices) return false
+        current[index] = updater(current[index])
+        savePresets(context, current)
+        updateLauncherShortcuts(context)
+        requestTileRefresh(context)
+        return true
+    }
+
+    private fun configureRuntimeAudioOverride(
+        context: Context,
+        runtimeAudioUri: String?,
+        runtimeAudioName: String?
+    ) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().apply {
+            if (runtimeAudioUri.isNullOrBlank()) {
+                putBoolean(KEY_RUNTIME_AUDIO_OVERRIDE_ENABLED, false)
+                remove(KEY_RUNTIME_AUDIO_OVERRIDE_URI)
+                remove(KEY_RUNTIME_AUDIO_OVERRIDE_NAME)
+            } else {
+                putBoolean(KEY_RUNTIME_AUDIO_OVERRIDE_ENABLED, true)
+                putString(KEY_RUNTIME_AUDIO_OVERRIDE_URI, runtimeAudioUri)
+                putString(KEY_RUNTIME_AUDIO_OVERRIDE_NAME, runtimeAudioName.orEmpty())
+            }
+        }.apply()
+    }
+
+    private fun loadDefaultPresetSlot(context: Context, presets: List<QuickTriggerPreset>): Int? {
+        if (presets.isEmpty()) return null
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val stored = prefs.getInt(KEY_DEFAULT_PRESET_SLOT, -1)
+        val storedValid = stored in 1..presets.size
+        return when {
+            storedValid -> stored
+            presets.size == 1 -> 1
+            else -> null
+        }
     }
 }

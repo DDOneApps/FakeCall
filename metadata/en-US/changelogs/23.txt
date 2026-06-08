@@ -1,0 +1,8 @@
+<ul>
+<li> New Crowdin updates by @DDOneApps in #27
+<li> New Crowdin updates by @DDOneApps in #28
+<li> Add Fastlane metadata for F-droid support by @DDOneApps in #32 to hopefully close issue #1 in a few days
+<li> Add battery optimization step to setup screen to close issue #29 (rom specific)
+<li> added custom audio feature for shortcuts
+<li> improved accessibility shortcut handeling
+</ul>

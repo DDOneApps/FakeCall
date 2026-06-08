@@ -6,6 +6,22 @@ import android.content.Intent
 
 class FakeCallAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
+        val runtimeAudioUri = intent?.getStringExtra(EXTRA_RUNTIME_AUDIO_URI).orEmpty()
+        val runtimeAudioName = intent?.getStringExtra(EXTRA_RUNTIME_AUDIO_NAME).orEmpty()
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .apply {
+                if (runtimeAudioUri.isBlank()) {
+                    putBoolean(KEY_RUNTIME_AUDIO_OVERRIDE_ENABLED, false)
+                    remove(KEY_RUNTIME_AUDIO_OVERRIDE_URI)
+                    remove(KEY_RUNTIME_AUDIO_OVERRIDE_NAME)
+                } else {
+                    putBoolean(KEY_RUNTIME_AUDIO_OVERRIDE_ENABLED, true)
+                    putString(KEY_RUNTIME_AUDIO_OVERRIDE_URI, runtimeAudioUri)
+                    putString(KEY_RUNTIME_AUDIO_OVERRIDE_NAME, runtimeAudioName)
+                }
+            }
+            .apply()
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
             .remove(KEY_TIMER_ENDS_AT)
@@ -32,5 +48,10 @@ class FakeCallAlarmReceiver : BroadcastReceiver() {
         const val EXTRA_CALLER_NAME = "extra_caller_name"
         const val EXTRA_CALLER_NUMBER = "extra_caller_number"
         const val EXTRA_PROVIDER_NAME = "extra_provider_name"
+        const val EXTRA_RUNTIME_AUDIO_URI = "extra_runtime_audio_uri"
+        const val EXTRA_RUNTIME_AUDIO_NAME = "extra_runtime_audio_name"
+        private const val KEY_RUNTIME_AUDIO_OVERRIDE_ENABLED = "runtime_audio_override_enabled"
+        private const val KEY_RUNTIME_AUDIO_OVERRIDE_URI = "runtime_audio_override_uri"
+        private const val KEY_RUNTIME_AUDIO_OVERRIDE_NAME = "runtime_audio_override_name"
     }
 }

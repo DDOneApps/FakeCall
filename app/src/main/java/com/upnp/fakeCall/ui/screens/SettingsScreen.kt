@@ -47,6 +47,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Alarm
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
@@ -72,8 +73,11 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -97,11 +101,13 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.upnp.fakeCall.AnswerAudioMode
 import com.upnp.fakeCall.BuildConfig
 import com.upnp.fakeCall.FakeCallViewModel
 import com.upnp.fakeCall.QuickTriggerManager
 import com.upnp.fakeCall.ReleaseInfo
 import com.upnp.fakeCall.R
+import com.upnp.fakeCall.SimProviderOption
 import com.upnp.fakeCall.UpdateCheckResult
 import com.upnp.fakeCall.ivr.IvrNode
 import com.upnp.fakeCall.ui.components.AnimatedIcon
@@ -129,9 +135,14 @@ fun SettingsScreen(
     var showAddNodeDialog by rememberSaveable { mutableStateOf(false) }
     var mappingNodeId by rememberSaveable { mutableStateOf<String?>(null) }
     var pendingAudioNodeId by rememberSaveable { mutableStateOf<String?>(null) }
+    var pendingQuickPresetAudioSlot by rememberSaveable { mutableStateOf<Int?>(null) }
     var isCheckingUpdates by rememberSaveable { mutableStateOf(false) }
     var quickTriggerDelayExpanded by rememberSaveable { mutableStateOf(false) }
+    var callRingTimeoutExpanded by rememberSaveable { mutableStateOf(false) }
+    var alarmRingTimeoutExpanded by rememberSaveable { mutableStateOf(false) }
     var updateDialogRelease by remember { mutableStateOf<ReleaseInfo?>(null) }
+    var showSimProviderDialog by remember { mutableStateOf(false) }
+    var simProviderOptions by remember { mutableStateOf<List<SimProviderOption>>(emptyList()) }
     var activeSubmenu by rememberSaveable { mutableStateOf(SettingsSubmenu.MAIN) }
     var backGestureProgress by remember { mutableStateOf(0f) }
 
@@ -145,6 +156,11 @@ fun SettingsScreen(
     ) { uri ->
         viewModel.onRecordingFolderSelected(uri)
     }
+    val mp3IvrFolderLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        viewModel.onMp3IvrFolderSelected(uri)
+    }
 
     val ivrAudioPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -154,6 +170,16 @@ fun SettingsScreen(
             viewModel.onIvrNodeAudioSelected(nodeId, uri)
         }
         pendingAudioNodeId = null
+    }
+
+    val quickPresetAudioPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        val slot = pendingQuickPresetAudioSlot
+        if (slot != null) {
+            viewModel.onQuickTriggerPresetAudioSelected(slot, uri)
+        }
+        pendingQuickPresetAudioSlot = null
     }
 
     val ivrExportLauncher = rememberLauncherForActivityResult(
@@ -324,6 +350,18 @@ fun SettingsScreen(
 
                     item {
                         PreferenceCard(
+                            icon = Icons.Outlined.Phone,
+                            title = stringResource(R.string.settings_use_sim_provider_title),
+                            subtitle = stringResource(R.string.settings_use_sim_provider_subtitle),
+                            onClick = {
+                                simProviderOptions = viewModel.loadSimProviderOptions()
+                                showSimProviderDialog = true
+                            }
+                        )
+                    }
+
+                    item {
+                        PreferenceCard(
                             icon = Icons.Outlined.Settings,
                             title = stringResource(R.string.settings_enable_provider_title),
                             subtitle = if (state.isProviderEnabled) {
@@ -342,22 +380,124 @@ fun SettingsScreen(
                     item {
                         PreferenceCard(
                             icon = Icons.Outlined.MusicNote,
-                            title = stringResource(R.string.settings_select_audio_title),
-                            subtitle = stringResource(
-                                R.string.settings_select_audio_subtitle,
-                                state.selectedAudioName.ifBlank { stringResource(R.string.default_audio_name) }
-                            ),
-                            onClick = { audioPickerLauncher.launch(arrayOf("audio/*")) }
-                        )
-                    }
+                            title = stringResource(R.string.settings_answer_audio_title),
+                            subtitle = answerAudioModeSummary(state),
+                            onClick = null,
+                            trailingContent = null
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                AnswerAudioModeOption(
+                                    title = stringResource(R.string.settings_answer_audio_mode_silent_title),
+                                    subtitle = stringResource(R.string.settings_answer_audio_mode_silent_subtitle),
+                                    icon = Icons.Outlined.VolumeOff,
+                                    selected = state.answerAudioMode == AnswerAudioMode.SILENT,
+                                    onClick = { viewModel.onAnswerAudioModeChange(AnswerAudioMode.SILENT) }
+                                )
+                                AnswerAudioModeOption(
+                                    title = stringResource(R.string.settings_answer_audio_mode_file_title),
+                                    subtitle = if (state.selectedAudioUri.isBlank()) {
+                                        stringResource(R.string.settings_answer_audio_mode_file_missing)
+                                    } else {
+                                        stringResource(R.string.settings_answer_audio_mode_file_subtitle, state.selectedAudioName)
+                                    },
+                                    icon = Icons.Outlined.MusicNote,
+                                    selected = state.answerAudioMode == AnswerAudioMode.AUDIO_FILE,
+                                    onClick = {
+                                        if (state.selectedAudioUri.isBlank()) {
+                                            audioPickerLauncher.launch(arrayOf("audio/*"))
+                                        } else {
+                                            viewModel.onAnswerAudioModeChange(AnswerAudioMode.AUDIO_FILE)
+                                        }
+                                    }
+                                )
+                                AnswerAudioModeOption(
+                                    title = stringResource(R.string.settings_answer_audio_mode_custom_ivr_title),
+                                    subtitle = stringResource(R.string.settings_answer_audio_mode_custom_ivr_subtitle),
+                                    icon = Icons.Outlined.Settings,
+                                    selected = state.answerAudioMode == AnswerAudioMode.CUSTOM_IVR,
+                                    onClick = { viewModel.onAnswerAudioModeChange(AnswerAudioMode.CUSTOM_IVR) }
+                                )
+                                AnswerAudioModeOption(
+                                    title = stringResource(R.string.settings_answer_audio_mode_mp3_ivr_title),
+                                    subtitle = if (state.mp3IvrFolderUri.isBlank()) {
+                                        stringResource(R.string.settings_answer_audio_mode_mp3_ivr_missing)
+                                    } else {
+                                        stringResource(R.string.settings_answer_audio_mode_mp3_ivr_subtitle, state.mp3IvrFolderName)
+                                    },
+                                    icon = Icons.Outlined.Folder,
+                                    selected = state.answerAudioMode == AnswerAudioMode.MP3_IVR,
+                                    onClick = {
+                                        if (state.mp3IvrFolderUri.isBlank()) {
+                                            mp3IvrFolderLauncher.launch(null)
+                                        } else {
+                                            viewModel.onAnswerAudioModeChange(AnswerAudioMode.MP3_IVR)
+                                        }
+                                    }
+                                )
 
-                    item {
-                        PreferenceCard(
-                            icon = Icons.Outlined.VolumeOff,
-                            title = stringResource(R.string.settings_use_default_audio_title),
-                            subtitle = stringResource(R.string.settings_use_default_audio_subtitle),
-                            onClick = viewModel::clearAudioSelection
-                        )
+                                when (state.answerAudioMode) {
+                                    AnswerAudioMode.SILENT -> {
+                                        Text(
+                                            text = stringResource(R.string.settings_answer_audio_silent_note),
+                                            style = MaterialTheme.typography.labelLarge,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    AnswerAudioMode.AUDIO_FILE -> {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            TextButton(
+                                                onClick = { audioPickerLauncher.launch(arrayOf("audio/*")) },
+                                                modifier = Modifier.bounceClick()
+                                            ) {
+                                                Text(stringResource(R.string.settings_answer_audio_choose_file))
+                                            }
+                                            TextButton(
+                                                onClick = viewModel::clearAudioSelection,
+                                                enabled = state.selectedAudioUri.isNotBlank(),
+                                                modifier = Modifier.bounceClick(enabled = state.selectedAudioUri.isNotBlank())
+                                            ) {
+                                                Text(stringResource(R.string.action_clear_audio))
+                                            }
+                                        }
+                                    }
+                                    AnswerAudioMode.CUSTOM_IVR -> {
+                                        FilledTonalButton(
+                                            onClick = { activeSubmenu = SettingsSubmenu.MAILBOX },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .bounceClick()
+                                        ) {
+                                            Text(stringResource(R.string.settings_answer_audio_configure_keymap))
+                                        }
+                                    }
+                                    AnswerAudioMode.MP3_IVR -> {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            TextButton(
+                                                onClick = { mp3IvrFolderLauncher.launch(null) },
+                                                modifier = Modifier.bounceClick()
+                                            ) {
+                                                Text(stringResource(R.string.settings_answer_audio_choose_folder))
+                                            }
+                                            TextButton(
+                                                onClick = viewModel::clearMp3IvrFolderSelection,
+                                                enabled = state.mp3IvrFolderUri.isNotBlank(),
+                                                modifier = Modifier.bounceClick(enabled = state.mp3IvrFolderUri.isNotBlank())
+                                            ) {
+                                                Text(stringResource(R.string.action_clear_folder))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
 
                     item {
@@ -381,6 +521,106 @@ fun SettingsScreen(
                                 }
                             }
                         )
+                    }
+
+                    item {
+                        PreferenceCategoryHeader(stringResource(R.string.settings_category_call_behavior))
+                    }
+
+                    item {
+                        PreferenceCard(
+                            icon = Icons.Outlined.AccessTime,
+                            title = stringResource(R.string.settings_call_ring_timeout_title),
+                            subtitle = stringResource(R.string.settings_call_ring_timeout_subtitle),
+                            onClick = null,
+                            trailingContent = null
+                        ) {
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                androidx.compose.material3.OutlinedTextField(
+                                    value = FakeCallViewModel.formatRingTimeout(context, state.callRingTimeoutSeconds),
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text(stringResource(R.string.settings_call_ring_timeout_label)) },
+                                    trailingIcon = {
+                                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = callRingTimeoutExpanded)
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(24.dp)
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .matchParentSize()
+                                        .clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null
+                                        ) {
+                                            callRingTimeoutExpanded = !callRingTimeoutExpanded
+                                        }
+                                )
+                                DropdownMenu(
+                                    expanded = callRingTimeoutExpanded,
+                                    onDismissRequest = { callRingTimeoutExpanded = false }
+                                ) {
+                                    viewModel.ringTimeoutOptionsSeconds.forEach { timeoutSeconds ->
+                                        DropdownMenuItem(
+                                            text = { Text(FakeCallViewModel.formatRingTimeout(context, timeoutSeconds)) },
+                                            onClick = {
+                                                viewModel.onCallRingTimeoutChange(timeoutSeconds)
+                                                callRingTimeoutExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    item {
+                        PreferenceCard(
+                            icon = Icons.Outlined.Alarm,
+                            title = stringResource(R.string.settings_alarm_ring_timeout_title),
+                            subtitle = stringResource(R.string.settings_alarm_ring_timeout_subtitle),
+                            onClick = null,
+                            trailingContent = null
+                        ) {
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                androidx.compose.material3.OutlinedTextField(
+                                    value = FakeCallViewModel.formatRingTimeout(context, state.alarmRingTimeoutSeconds),
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text(stringResource(R.string.settings_alarm_ring_timeout_label)) },
+                                    trailingIcon = {
+                                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = alarmRingTimeoutExpanded)
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(24.dp)
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .matchParentSize()
+                                        .clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null
+                                        ) {
+                                            alarmRingTimeoutExpanded = !alarmRingTimeoutExpanded
+                                        }
+                                )
+                                DropdownMenu(
+                                    expanded = alarmRingTimeoutExpanded,
+                                    onDismissRequest = { alarmRingTimeoutExpanded = false }
+                                ) {
+                                    viewModel.ringTimeoutOptionsSeconds.forEach { timeoutSeconds ->
+                                        DropdownMenuItem(
+                                            text = { Text(FakeCallViewModel.formatRingTimeout(context, timeoutSeconds)) },
+                                            onClick = {
+                                                viewModel.onAlarmRingTimeoutChange(timeoutSeconds)
+                                                alarmRingTimeoutExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
 
                     item {
@@ -416,17 +656,6 @@ fun SettingsScreen(
                             title = stringResource(R.string.settings_automation_title),
                             subtitle = stringResource(R.string.settings_automation_hub_subtitle),
                             onClick = { activeSubmenu = SettingsSubmenu.AUTOMATION }
-                        )
-                    }
-                    item {
-                        PreferenceCategoryHeader(stringResource(R.string.settings_category_mailbox))
-                    }
-                    item {
-                        PreferenceCard(
-                            icon = Icons.Outlined.Folder,
-                            title = stringResource(R.string.settings_category_mailbox),
-                            subtitle = stringResource(R.string.settings_mailbox_hub_subtitle),
-                            onClick = { activeSubmenu = SettingsSubmenu.MAILBOX }
                         )
                     }
                 }
@@ -494,20 +723,12 @@ fun SettingsScreen(
                                     }
                                 }
                                 Text(
-                                    text = stringResource(R.string.settings_quick_triggers_audio_note),
+                                    text = stringResource(R.string.settings_quick_triggers_audio_note_with_preset),
                                     style = MaterialTheme.typography.labelLarge,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
-                    }
-                    item {
-                        PreferenceCard(
-                            icon = Icons.Outlined.Settings,
-                            title = stringResource(R.string.settings_open_accessibility_settings),
-                            subtitle = stringResource(R.string.settings_accessibility_note),
-                            onClick = { openAccessibilitySettings(context) }
-                        )
                     }
                     item {
                         PreferenceCard(
@@ -567,6 +788,13 @@ fun SettingsScreen(
                                                     style = MaterialTheme.typography.titleSmall,
                                                     color = MaterialTheme.colorScheme.onSurface
                                                 )
+                                                if (state.quickTriggerDefaultPresetSlot == index + 1) {
+                                                    Text(
+                                                        text = stringResource(R.string.settings_default_for_accessibility),
+                                                        style = MaterialTheme.typography.labelLarge,
+                                                        color = MaterialTheme.colorScheme.primary
+                                                    )
+                                                }
                                                 Text(
                                                     text = "${preset.callerName.ifBlank { stringResource(R.string.settings_preset_unknown_caller) }} • ${preset.callerNumber} • ${FakeCallViewModel.formatDelay(context, preset.delaySeconds)}",
                                                     style = MaterialTheme.typography.labelLarge,
@@ -577,17 +805,93 @@ fun SettingsScreen(
                                                     horizontalArrangement = Arrangement.SpaceBetween,
                                                     verticalAlignment = Alignment.CenterVertically
                                                 ) {
-                                                    TextButton(
-                                                        onClick = { viewModel.applyQuickTriggerPreset(index + 1) },
-                                                        modifier = Modifier.bounceClick()
+                                                    Text(
+                                                        text = stringResource(R.string.settings_preset_custom_audio_toggle),
+                                                        style = MaterialTheme.typography.labelLarge,
+                                                        color = MaterialTheme.colorScheme.onSurface
+                                                    )
+                                                    Switch(
+                                                        checked = preset.useCustomAudio,
+                                                        onCheckedChange = { enabled ->
+                                                            viewModel.onQuickTriggerPresetUseCustomAudioChange(
+                                                                index + 1,
+                                                                enabled
+                                                            )
+                                                        }
+                                                    )
+                                                }
+                                                if (preset.useCustomAudio) {
+                                                    Text(
+                                                        text = stringResource(
+                                                            R.string.settings_preset_custom_audio_current,
+                                                            preset.customAudioName.ifBlank { stringResource(R.string.settings_no_audio_selected) }
+                                                        ),
+                                                        style = MaterialTheme.typography.labelLarge,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        verticalAlignment = Alignment.CenterVertically
                                                     ) {
-                                                        Text(stringResource(R.string.settings_apply_to_defaults))
+                                                        TextButton(
+                                                            onClick = {
+                                                                pendingQuickPresetAudioSlot = index + 1
+                                                                quickPresetAudioPickerLauncher.launch(arrayOf("audio/*"))
+                                                            },
+                                                            modifier = Modifier.bounceClick()
+                                                        ) {
+                                                            Text(stringResource(R.string.settings_select_audio_title))
+                                                        }
+                                                        TextButton(
+                                                            onClick = { viewModel.clearQuickTriggerPresetAudio(index + 1) },
+                                                            enabled = preset.customAudioUri.isNotBlank(),
+                                                            modifier = Modifier.bounceClick(enabled = preset.customAudioUri.isNotBlank())
+                                                        ) {
+                                                            Text(stringResource(R.string.action_clear_audio))
+                                                        }
                                                     }
-                                                    TextButton(
-                                                        onClick = { viewModel.removeQuickTriggerPreset(index + 1) },
-                                                        modifier = Modifier.bounceClick()
+                                                }
+                                                Column(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                                ) {
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        verticalAlignment = Alignment.CenterVertically
                                                     ) {
-                                                        Text(stringResource(R.string.action_remove))
+                                                        TextButton(
+                                                            onClick = { viewModel.setQuickTriggerDefaultPreset(index + 1) },
+                                                            modifier = Modifier.bounceClick(),
+                                                            enabled = state.quickTriggerDefaultPresetSlot != index + 1
+                                                        ) {
+                                                            Text(
+                                                                if (state.quickTriggerDefaultPresetSlot == index + 1) {
+                                                                    stringResource(R.string.settings_default_preset_selected)
+                                                                } else {
+                                                                    stringResource(R.string.settings_set_as_default_for_accessibility)
+                                                                }
+                                                            )
+                                                        }
+                                                        TextButton(
+                                                            onClick = { viewModel.applyQuickTriggerPreset(index + 1) },
+                                                            modifier = Modifier.bounceClick()
+                                                        ) {
+                                                            Text(stringResource(R.string.settings_apply_to_defaults))
+                                                        }
+                                                    }
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.End,
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        TextButton(
+                                                            onClick = { viewModel.removeQuickTriggerPreset(index + 1) },
+                                                            modifier = Modifier.bounceClick()
+                                                        ) {
+                                                            Text(stringResource(R.string.action_remove))
+                                                        }
                                                     }
                                                 }
                                             }
@@ -606,62 +910,101 @@ fun SettingsScreen(
                             trailingContent = null
                         )
                     }
+                    item {
+                        PreferenceCard(
+                            icon = Icons.Outlined.Settings,
+                            title = stringResource(R.string.settings_open_accessibility_settings),
+                            subtitle = stringResource(R.string.settings_accessibility_note),
+                            onClick = { openAccessibilitySettings(context) }
+                        )
+                    }
                 }
 
                 if (submenu == SettingsSubmenu.MAILBOX) {
                     item {
                         PreferenceCategoryHeader(stringResource(R.string.settings_category_mailbox))
                     }
-                    item {
-                        PreferenceCard(
-                            icon = Icons.Outlined.Folder,
-                            title = stringResource(R.string.settings_import_mailbox_title),
-                            subtitle = stringResource(R.string.settings_import_mailbox_subtitle),
-                            onClick = { ivrImportLauncher.launch(arrayOf("text/xml", "application/xml")) }
-                        )
-                    }
-                    item {
-                        PreferenceCard(
-                            icon = Icons.Outlined.Refresh,
-                            title = stringResource(R.string.settings_export_mailbox_title),
-                            subtitle = stringResource(R.string.settings_export_mailbox_subtitle),
-                            onClick = { ivrExportLauncher.launch("fakecall_mailbox.xml") }
-                        )
-                    }
-                    item {
-                        PreferenceCard(
-                            icon = Icons.Outlined.Add,
-                            title = stringResource(R.string.settings_add_node_title),
-                            subtitle = stringResource(R.string.settings_add_node_subtitle),
-                            onClick = { showAddNodeDialog = true }
-                        )
-                    }
-
-                    if (ivrNodes.isEmpty()) {
+                    if (state.answerAudioMode == AnswerAudioMode.MP3_IVR) {
                         item {
-                            Text(
-                                text = stringResource(R.string.settings_no_mailbox_nodes),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            PreferenceCard(
+                                icon = Icons.Outlined.MusicNote,
+                                title = stringResource(R.string.settings_mp3_ivr_mode_title),
+                                subtitle = stringResource(R.string.settings_mp3_ivr_mode_subtitle),
+                                onClick = null,
+                                trailingContent = null
+                            )
+                        }
+                        item {
+                            PreferenceCard(
+                                icon = Icons.Outlined.Folder,
+                                title = stringResource(R.string.settings_mp3_ivr_folder_title),
+                                subtitle = stringResource(
+                                    R.string.settings_mp3_ivr_folder_subtitle,
+                                    state.mp3IvrFolderName
+                                ),
+                                onClick = { mp3IvrFolderLauncher.launch(null) }
+                            )
+                        }
+                        item {
+                            PreferenceCard(
+                                icon = Icons.Outlined.Close,
+                                title = stringResource(R.string.settings_mp3_ivr_clear_folder_title),
+                                subtitle = stringResource(R.string.settings_mp3_ivr_clear_folder_subtitle),
+                                onClick = viewModel::clearMp3IvrFolderSelection
                             )
                         }
                     } else {
-                        items(ivrNodes) { node ->
-                            MailboxNodeCard(
-                                node = node,
-                                nodes = ivrNodes,
-                                isRoot = ivrConfig?.rootId == node.id,
-                                onSetRoot = { viewModel.setIvrRoot(node.id) },
-                                onSelectAudio = {
-                                    pendingAudioNodeId = node.id
-                                    ivrAudioPicker.launch(arrayOf("audio/*"))
-                                },
-                                onClearAudio = { viewModel.clearIvrNodeAudio(node.id) },
-                                onAddMapping = { mappingNodeId = node.id },
-                                onRemoveMapping = { digit -> viewModel.removeIvrRoute(node.id, digit) },
-                                onDelete = { viewModel.removeIvrNode(node.id) }
+                        item {
+                            PreferenceCard(
+                                icon = Icons.Outlined.Folder,
+                                title = stringResource(R.string.settings_import_mailbox_title),
+                                subtitle = stringResource(R.string.settings_import_mailbox_subtitle),
+                                onClick = { ivrImportLauncher.launch(arrayOf("text/xml", "application/xml")) }
                             )
+                        }
+                        item {
+                            PreferenceCard(
+                                icon = Icons.Outlined.Refresh,
+                                title = stringResource(R.string.settings_export_mailbox_title),
+                                subtitle = stringResource(R.string.settings_export_mailbox_subtitle),
+                                onClick = { ivrExportLauncher.launch("fakecall_mailbox.xml") }
+                            )
+                        }
+                        item {
+                            PreferenceCard(
+                                icon = Icons.Outlined.Add,
+                                title = stringResource(R.string.settings_add_node_title),
+                                subtitle = stringResource(R.string.settings_add_node_subtitle),
+                                onClick = { showAddNodeDialog = true }
+                            )
+                        }
+
+                        if (ivrNodes.isEmpty()) {
+                            item {
+                                Text(
+                                    text = stringResource(R.string.settings_no_mailbox_nodes),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                )
+                            }
+                        } else {
+                            items(ivrNodes) { node ->
+                                MailboxNodeCard(
+                                    node = node,
+                                    nodes = ivrNodes,
+                                    isRoot = ivrConfig?.rootId == node.id,
+                                    onSetRoot = { viewModel.setIvrRoot(node.id) },
+                                    onSelectAudio = {
+                                        pendingAudioNodeId = node.id
+                                        ivrAudioPicker.launch(arrayOf("audio/*"))
+                                    },
+                                    onClearAudio = { viewModel.clearIvrNodeAudio(node.id) },
+                                    onAddMapping = { mappingNodeId = node.id },
+                                    onRemoveMapping = { digit -> viewModel.removeIvrRoute(node.id, digit) },
+                                    onDelete = { viewModel.removeIvrNode(node.id) }
+                                )
+                            }
                         }
                     }
                 }
@@ -851,6 +1194,18 @@ fun SettingsScreen(
             }
         )
     }
+
+    if (showSimProviderDialog) {
+        SimProviderPickerDialog(
+            options = simProviderOptions,
+            onSelect = { option ->
+                viewModel.applySimProviderName(option)
+                showSimProviderDialog = false
+            },
+            onKeepCurrent = { showSimProviderDialog = false },
+            onDismiss = { showSimProviderDialog = false }
+        )
+    }
 }
 
 private enum class SettingsSubmenu {
@@ -866,6 +1221,85 @@ private fun PreferenceCategoryHeader(title: String) {
         style = MaterialTheme.typography.displaySmall,
         color = MaterialTheme.colorScheme.onSurface
     )
+}
+
+@Composable
+private fun answerAudioModeSummary(state: com.upnp.fakeCall.FakeCallUiState): String {
+    return when (state.answerAudioMode) {
+        AnswerAudioMode.SILENT -> stringResource(R.string.settings_answer_audio_summary_silent)
+        AnswerAudioMode.AUDIO_FILE -> stringResource(
+            R.string.settings_answer_audio_summary_file,
+            state.selectedAudioName.ifBlank { stringResource(R.string.default_audio_name) }
+        )
+        AnswerAudioMode.CUSTOM_IVR -> stringResource(R.string.settings_answer_audio_summary_custom_ivr)
+        AnswerAudioMode.MP3_IVR -> stringResource(
+            R.string.settings_answer_audio_summary_mp3_ivr,
+            state.mp3IvrFolderName.ifBlank { stringResource(R.string.settings_mp3_ivr_no_folder_selected) }
+        )
+    }
+}
+
+@Composable
+private fun AnswerAudioModeOption(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val containerColor = if (selected) {
+        MaterialTheme.colorScheme.primaryContainer
+    } else {
+        MaterialTheme.colorScheme.surfaceContainer
+    }
+    val contentColor = if (selected) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .bounceClick(onClick = onClick),
+        shape = RoundedCornerShape(24.dp),
+        color = containerColor,
+        contentColor = contentColor,
+        tonalElevation = if (selected) 2.dp else 1.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = contentColor
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = contentColor
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = contentColor.copy(alpha = 0.78f)
+                )
+            }
+            if (selected) {
+                Icon(
+                    imageVector = Icons.Outlined.CheckCircle,
+                    contentDescription = null,
+                    tint = contentColor
+                )
+            }
+        }
+    }
 }
 
 @Composable

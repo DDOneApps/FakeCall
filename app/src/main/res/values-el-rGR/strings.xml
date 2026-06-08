@@ -1,6 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Fake Call</string>
-
     <!-- Onboarding -->
     <string name="onboarding_title">Καλώς ήρθατε στο FakeCall</string>
     <string name="onboarding_subtitle">Μια μοναδική εμπειρία ψεύτικων κλήσεων με εκφραστική κίνηση και άμεσο προγραμματισμό.</string>
@@ -23,11 +23,9 @@
     <string name="permission_completed">Ολοκληρώθηκε</string>
     <string name="onboarding_calling_accounts_help_title">Δεν μπορείτε να ανοίξετε τις ρυθμίσεις λογαριασμών κλήσης;</string>
     <string name="onboarding_calling_accounts_help_subtitle">Ορισμένες κατασκευές OnePlus/Oppo/Realme/Samsung κρύβουν την οθόνη. Μπορείτε να την ανοίξετε απευθείας μέσω ADB:</string>
-    <string name="onboarding_adb_command" translatable="false">adb shell am start -a android.intent.action.MAIN -n com.android.server.telecom/.settings.EnableAccountPreferenceActivity</string>
     <string name="onboarding_all_set">Όλα έτοιμα! Είστε έτοιμοι να προγραμματίσετε την πρώτη σας ψεύτικη κλήση.</string>
     <string name="onboarding_finish_setup">Ολοκλήρωση ρυθμίσεων</string>
     <string name="onboarding_finish_setup_needs_permissions">Ολοκλήρωση ρυθμίσεων (απαιτούνται άδειες)</string>
-
     <!-- Dashboard -->
     <string name="app_title">FakeCall</string>
     <string name="app_subtitle">Προγραμματίστε την τέλεια διαφυγή σας</string>
@@ -53,7 +51,6 @@
     <string name="exact_time_picker_dialog_title">Επιλέξτε ακριβή ώρα</string>
     <string name="wheel_picker_minutes">ΛΕΠ</string>
     <string name="wheel_picker_seconds">ΔΕΥ</string>
-
     <!-- Settings -->
     <string name="cd_back">Πίσω</string>
     <string name="settings_title">Ρυθμίσεις</string>
@@ -86,7 +83,7 @@
     <string name="settings_automation_subtitle">Χρησιμοποιούνται από εξωτερικές προθέσεις και τη συντόμευση προσβασιμότητας.</string>
     <string name="settings_automation_hub_subtitle">Διαχειριστείτε εξωτερικά triggers, τη συντόμευση προσβασιμότητας και τις προεπιλογές σε ένα σημείο.</string>
     <string name="settings_automation_defaults_title">Προεπιλογές Quick Trigger</string>
-    <string name="settings_automation_api_title">Automation API</string>
+    <string name="settings_automation_api_title">API Αυτοματισμού</string>
     <string name="settings_default_caller_name_label">Προεπιλεγμένο όνομα καλούντος</string>
     <string name="settings_default_caller_number_label">Προεπιλεγμένος αριθμός καλούντος</string>
     <string name="settings_default_delay_label">Προεπιλεγμένη καθυστέρηση</string>
@@ -101,19 +98,29 @@
     <string name="settings_apply_to_defaults">Εφαρμογή στις προεπιλογές</string>
     <string name="settings_presets_note">Οι προρυθμίσεις εμφανίζονται ως συντομεύσεις του εικονιδίου της εφαρμογής και ως πλακίδια γρήγορων ρυθμίσεων (Προρύθμιση 1-5).</string>
     <string name="settings_automation_action_note">Δράση: `com.upnp.fakeCall.TRIGGER` με επιπλέον `caller_name`, `caller_number` και `delay`.</string>
-    <string name="settings_category_mailbox">Γραμματοκιβώτιο (IVR)</string>
-    <string name="settings_mailbox_hub_subtitle">Διαχειριστείτε κόμβους IVR, αντιστοιχίσεις και εισαγωγή/εξαγωγή χωρίς υπερφόρτωση των κύριων ρυθμίσεων.</string>
-    <string name="settings_import_mailbox_title">Εισαγωγή XML γραμματοκιβωτίου</string>
+    <string name="settings_category_mailbox">Προσαρμοσμένοι συνδυασμοί πλήκτρων (IVR)</string>
+    <string name="settings_mailbox_hub_subtitle">Ρυθμίστε τη συμπεριφορά IVR, είτε με προσαρμοσμένες αντιστοιχίσεις κόμβων, είτε με πλοήγηση φακέλου MP3.</string>
+    <string name="settings_import_mailbox_title">Εισαγωγή IVR XML</string>
     <string name="settings_import_mailbox_subtitle">Φόρτωση αποθηκευμένου δέντρου IVR.</string>
-    <string name="settings_export_mailbox_title">Εξαγωγή XML γραμματοκιβωτίου</string>
+    <string name="settings_ivr_mode_title">Λειτουργία IVR</string>
+    <string name="settings_ivr_mode_subtitle">Η προσαρμοσμένη λειτουργία χρησιμοποιεί τις χειροκίνητες αντιστοιχίσεις πλήκτρων σας. Η λειτουργία αναπαραγωγής MP3 αντιστοιχεί αυτόματα πλήκτρα από τον επιλεγμένο φάκελο και ανακοινώνει τις επιλογές με TTS.</string>
+    <string name="settings_ivr_mode_custom">Προσαρμοσμένη λειτουργία</string>
+    <string name="settings_ivr_mode_mp3">Λειτουργία αναπαραγωγής MP3</string>
+    <string name="settings_mp3_ivr_mode_title">Λειτουργία IVR αναπαραγωγής MP3</string>
+    <string name="settings_mp3_ivr_mode_subtitle">Αυτόματη χαρτογράφηση πλήκτρων από έναν επιλεγμένο φάκελο και χρήση TTS για την ανακοίνωση καταχωρήσεων.</string>
+    <string name="settings_mp3_ivr_folder_title">Επιλογή φακέλου MP3 IVR</string>
+    <string name="settings_mp3_ivr_folder_subtitle">Τρέχων φάκελος: %s</string>
+    <string name="settings_mp3_ivr_clear_folder_title">Καθαρισμός φακέλου MP3 IVR</string>
+    <string name="settings_mp3_ivr_clear_folder_subtitle">Απενεργοποίηση πηγής πλοήγησης IVR βάσει φακέλου.</string>
+    <string name="settings_mp3_ivr_no_folder_selected">Δεν επιλέχθηκε φάκελος</string>
+    <string name="settings_export_mailbox_title">Εξαγωγή IVR XML</string>
     <string name="settings_export_mailbox_subtitle">Κοινοποίηση του τρέχοντος δέντρου IVR σας.</string>
     <string name="settings_add_node_title">Προσθήκη κόμβου μενού</string>
     <string name="settings_add_node_subtitle">Δημιουργία νέου μενού IVR.</string>
-    <string name="settings_no_mailbox_nodes">Κανένας κόμβος γραμματοκιβωτίου ακόμα.</string>
+    <string name="settings_no_mailbox_nodes">Κανένας κόμβος IVR ακόμα.</string>
     <string name="settings_about_title">Σχετικά και ενημερώσεις</string>
     <string name="settings_current_version">Τρέχουσα έκδοση: %s</string>
     <string name="settings_github_repo">Αποθετήριο GitHub</string>
-    <string name="settings_github_repo_name" translatable="false">DDOneApps/FakeCall</string>
     <string name="settings_checking_updates">Έλεγχος...</string>
     <string name="settings_check_for_updates">Έλεγχος για ενημερώσεις</string>
     <string name="snackbar_up_to_date">Χρησιμοποιείτε την τελευταία έκδοση.</string>
@@ -142,11 +149,17 @@
     <string name="dialog_target_node_label">Κόμβος προορισμού</string>
     <string name="dialog_add_another_node">Προσθέστε έναν άλλο κόμβο για να δημιουργήσετε αντιστοιχίσεις.</string>
     <string name="action_add">Προσθήκη</string>
-
     <!-- Components -->
     <string name="caller_details_title">Στοιχεία καλούντος</string>
+    <string name="caller_mode_manual">Όνομα + αριθμός</string>
+    <string name="caller_mode_contact">Επαφή</string>
     <string name="label_caller_name">Όνομα καλούντος</string>
     <string name="label_caller_number">Αριθμός καλούντος</string>
+    <string name="action_select_contact">Επιλογή επαφής</string>
+    <string name="selected_short">Επιλεγμένη</string>
+    <string name="selected_contact_title">Επιλεγμένη επαφή</string>
+    <string name="pinned_contacts_title">Καρφιτσωμένες επαφές</string>
+    <string name="recent_contacts_title">Πρόσφατες επαφές</string>
     <string name="hint_shown_on_incoming_call">Εμφανίζεται στην οθόνη εισερχόμενης κλήσης.</string>
     <string name="timing_title">Χρονομέτρηση</string>
     <string name="label_saved_presets">Αποθηκευμένες προρυθμίσεις</string>
@@ -157,21 +170,17 @@
     <string name="action_play">Αναπαραγωγή</string>
     <string name="action_open_settings">Άνοιγμα ρυθμίσεων</string>
     <string name="action_clear_audio">Διαγραφή ήχου</string>
-
     <!-- Common actions -->
     <string name="action_cancel">Ακύρωση</string>
     <string name="action_remove">Αφαίρεση</string>
     <string name="action_apply">Εφαρμογή</string>
-
     <!-- Default values -->
     <string name="default_audio_name">Προεπιλεγμένος</string>
     <string name="default_provider_name">Πάροχος Fake Call</string>
-    <string name="default_recordings_folder" translatable="false">Downloads/FakeCall</string>
     <string name="default_ivr_node_title">Μενού</string>
     <string name="default_caller_name">Άγνωστος καλών</string>
     <string name="default_selected_folder">Επιλεγμένος φάκελος</string>
     <string name="default_selected_audio">Επιλεγμένος ήχος</string>
-
     <!-- Notifications -->
     <string name="notification_channel_scheduler">Προγραμματιστής Fake Call</string>
     <string name="notification_channel_recording">Εγγραφή κλήσης</string>
@@ -181,7 +190,6 @@
     <string name="notification_scheduled_title_with_name">Ψεύτικη κλήση: %s</string>
     <string name="notification_scheduled_text">Εισερχόμενη κλήση σε %1$d δευτερόλεπτα από %2$s</string>
     <string name="notification_unknown_caller">Άγνωστος</string>
-
     <!-- Quick Trigger Tile -->
     <string name="tile_preset_label">Προρύθμιση %d</string>
     <string name="tile_service_preset_1">Προρύθμιση FakeCall 1</string>
@@ -195,18 +203,15 @@
     <string name="toast_preset_not_configured">Η προρύθμιση %d δεν έχει ρυθμιστεί</string>
     <string name="toast_preset_run_failed">Δεν ήταν δυνατή η εκτέλεση της προρύθμισης %d</string>
     <string name="toast_call_scheduling_failed">Δεν ήταν δυνατός ο προγραμματισμός του Fake Call</string>
-
     <!-- Update banner -->
     <string name="update_available_banner">Ενημέρωση %s διαθέσιμη!</string>
     <string name="action_download">Λήψη</string>
     <string name="cd_dismiss_update">Απόρριψη ενημέρωσης</string>
-
     <!-- Misc labels -->
     <string name="label_unknown">Άγνωστο</string>
     <string name="label_version_prefix">v</string>
     <string name="delay_now">Τώρα</string>
     <string name="settings_mapping_chip_label">%1$s → %2$s</string>
-
     <!-- Status messages -->
     <string name="status_grant_permissions">Χορηγήστε άδειες τηλεφώνου για να συνεχίσετε.</string>
     <string name="status_grant_permissions_first">Χορηγήστε πρώτα άδειες τηλεφώνου.</string>
@@ -234,10 +239,26 @@
     <string name="status_grant_permissions_scheduling">Χορηγήστε άδειες τηλεφώνου πριν προγραμματίσετε.</string>
     <string name="status_enable_calling_accounts">Ενεργοποιήστε πρώτα αυτήν την εφαρμογή στους λογαριασμούς κλήσης του συστήματος.</string>
     <string name="status_enter_caller_number_scheduling">Εισάγετε έναν αριθμό καλούντος πριν προγραμματίσετε.</string>
+    <string name="status_select_contact_scheduling">Επιλέξτε μια επαφή πριν τον προγραμματισμό.</string>
+    <string name="status_contact_pick_failed">Αδύνατη η ανάγνωση αυτής της επαφής. Επιλέξτε μια άλλη.</string>
     <string name="status_triggering_now">Ενεργοποίηση εισερχόμενης κλήσης τώρα.</string>
     <string name="status_trigger_failed">Δεν ήταν δυνατή η ενεργοποίηση κλήσης. Ενεργοποιήστε τον πάροχο στους λογαριασμούς κλήσης.</string>
     <string name="status_enable_exact_alarms">Ενεργοποιήστε τις ακριβείς ειδοποιήσεις για προγραμματισμό ακριβών κλήσεων.</string>
+    <string name="status_select_mp3_ivr_folder">Επιλέξτε έναν φάκελο MP3 IVR για να χρησιμοποιήσετε αυτή τη λειτουργία.</string>
     <string name="status_timer_cancelled">Το χρονόμετρο ακυρώθηκε.</string>
     <string name="status_call_scheduled_for">Κλήση προγραμματισμένη για %s.</string>
     <string name="status_timer_started_for">Το χρονόμετρο ξεκίνησε για %s.</string>
+    <string name="tts_mp3_ivr_empty_folder">Ο επιλεγμένος φάκελος δεν έχει αρχεία ήχου ή υποφακέλους.</string>
+    <string name="tts_mp3_ivr_menu_intro">%1$s μενού.</string>
+    <string name="tts_mp3_ivr_page_announcement">Σελίδα %1$d από %2$d.</string>
+    <string name="tts_mp3_ivr_menu_item_folder">Πατήστε %1$d για φάκελο %2$s.</string>
+    <string name="tts_mp3_ivr_menu_item_audio">Πατήστε %1$d για ήχο %2$s.</string>
+    <string name="tts_mp3_ivr_next_page_hint">Πατήστε λίρα για την επόμενη σελίδα.</string>
+    <string name="tts_mp3_ivr_previous_page_hint">Πατήστε αστέρι για την προηγούμενη σελίδα.</string>
+    <string name="tts_mp3_ivr_back_folder_hint">Πατήστε 0 για να επιστρέψετε στον προηγούμενο φάκελο.</string>
+    <string name="tts_mp3_ivr_no_next_page">Δεν υπάρχει επόμενη σελίδα.</string>
+    <string name="tts_mp3_ivr_no_previous_page">Δεν υπάρχει προηγούμενη σελίδα.</string>
+    <string name="tts_mp3_ivr_root_folder">Είστε ήδη στον αρχικό φάκελο.</string>
+    <string name="tts_mp3_ivr_invalid_selection">Μη έγκυρη επιλογή.</string>
+    <string name="tts_mp3_ivr_audio_failed">Αδυναμία αναπαραγωγής αυτού του αρχείου ήχου.</string>
 </resources>

@@ -1,6 +1,12 @@
 package com.upnp.fakeCall.ui.screens
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.provider.ContactsContract
 import android.text.format.DateFormat
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -35,6 +41,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccessTime
+import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.rounded.Phone
 import androidx.compose.material.icons.rounded.PhoneInTalk
@@ -43,6 +50,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberTimePickerState
@@ -69,8 +77,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import androidx.compose.ui.window.Dialog
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.upnp.fakeCall.AnswerAudioMode
 import com.upnp.fakeCall.CustomPreset
+import com.upnp.fakeCall.CallerInputMode
 import com.upnp.fakeCall.FakeCallUiState
 import com.upnp.fakeCall.FakeCallViewModel
 import com.upnp.fakeCall.R
@@ -96,7 +107,9 @@ import kotlin.math.absoluteValue
 @Composable
 fun DashboardScreen(
     viewModel: FakeCallViewModel,
-    onOpenSettings: () -> Unit
+    onOpenSettings: () -> Unit,
+    bottomFloatingInset: androidx.compose.ui.unit.Dp = 0.dp,
+    modeNavigationBar: (@Composable () -> Unit)? = null
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -126,6 +139,24 @@ fun DashboardScreen(
     )
 
     val canTrigger = state.hasRequiredPermissions && state.isProviderEnabled
+    val hasCallerNumber = when (state.callerInputMode) {
+        CallerInputMode.CONTACT -> state.selectedContact?.phoneNumber?.trim().isNullOrEmpty().not()
+        CallerInputMode.MANUAL -> state.callerNumber.trim().isNotBlank()
+    }
+    val canRunPrimaryAction = state.isTimerRunning || (canTrigger && hasCallerNumber)
+    val contactPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        viewModel.onContactPicked(result.data?.data)
+    }
+    val contactPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            val intent = Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI)
+            contactPickerLauncher.launch(intent)
+        }
+    }
     val actionLabel = if (state.isTimerRunning) stringResource(R.string.action_cancel_call) else stringResource(R.string.action_schedule_call)
     val is24Hour = DateFormat.is24HourFormat(context)
 
@@ -205,19 +236,24 @@ fun DashboardScreen(
                     }
                 },
                 bottomBar = {
-                    BottomActionBar(
-                        enabled = canTrigger || state.isTimerRunning,
-                        label = actionLabel,
-                        containerColor = actionContainerColor,
-                        contentColor = actionContentColor,
-                        isRinging = state.isTimerRunning,
-                        onClick = {
-                            if (canTrigger || state.isTimerRunning) {
-                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                viewModel.onTriggerOrCancelClicked()
+                    Column {
+                        BottomActionBar(
+                            enabled = canRunPrimaryAction,
+                            label = actionLabel,
+                            containerColor = actionContainerColor,
+                            contentColor = actionContentColor,
+                            isRinging = state.isTimerRunning,
+                            extraBottomPadding = bottomFloatingInset,
+                            applyBottomInset = modeNavigationBar == null,
+                            onClick = {
+                                if (canRunPrimaryAction) {
+                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    viewModel.onTriggerOrCancelClicked()
+                                }
                             }
-                        }
-                    )
+                        )
+                        modeNavigationBar?.invoke()
+                    }
                 }
             ) { innerPadding ->
                 LazyColumn(
@@ -242,24 +278,54 @@ fun DashboardScreen(
                     }
 
                     item {
-                        AnimatedVisibility(
-                            visible = state.isTimerRunning,
-                            enter = expandVertically(animationSpec = expressiveSpring()) + fadeIn(animationSpec = expressiveSpring()),
-                            exit = shrinkVertically(animationSpec = expressiveSpring()) + fadeOut(animationSpec = expressiveSpring())
-                        ) {
-                            ScheduledBanner(
-                                runningLabel = runningScheduleLabel(state.timerEndsAtMillis)
-                            )
-                        }
-                    }
-
-                    item {
                         CallerInputCard(
+                            callerInputMode = state.callerInputMode,
+                            onCallerInputModeChange = viewModel::onCallerInputModeChange,
                             callerName = state.callerName,
                             callerNumber = state.callerNumber,
                             onCallerNameChange = viewModel::onCallerNameChange,
-                            onCallerNumberChange = viewModel::onCallerNumberChange
+                            onCallerNumberChange = viewModel::onCallerNumberChange,
+                            selectedContact = state.selectedContact,
+                            pinnedContacts = state.pinnedContacts,
+                            recentContacts = state.recentContacts,
+                            onPickContact = {
+                                val hasContactsPermission = ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.READ_CONTACTS
+                                ) == PackageManager.PERMISSION_GRANTED
+                                if (hasContactsPermission) {
+                                    val intent = Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI)
+                                    contactPickerLauncher.launch(intent)
+                                } else {
+                                    contactPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
+                                }
+                            },
+                            onSelectContact = viewModel::selectContact,
+                            onTogglePinned = viewModel::togglePinnedContact
                         )
+                    }
+
+                    item {
+                        if (!state.isTimerRunning && !hasCallerNumber) {
+                            Surface(
+                                tonalElevation = 1.dp,
+                                shape = RoundedCornerShape(24.dp),
+                                color = MaterialTheme.colorScheme.errorContainer
+                            ) {
+                                Text(
+                                    text = if (state.callerInputMode == CallerInputMode.CONTACT) {
+                                        stringResource(R.string.status_select_contact_scheduling)
+                                    } else {
+                                        stringResource(R.string.status_enter_caller_number_scheduling)
+                                    },
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                                )
+                            }
+                        }
                     }
 
                     item {
@@ -348,11 +414,26 @@ fun DashboardScreen(
                     }
 
                     item {
-                        AudioPreviewCard(
-                            audioLabel = state.selectedAudioName.ifBlank { stringResource(R.string.default_audio_name) },
-                            audioUri = state.selectedAudioUri,
-                            onOpenSettings = onOpenSettings,
+                        val audioPreview = answerPlaybackPreview(
+                            state = state,
                             onClearAudio = viewModel::clearAudioSelection
+                        )
+                        AudioPreviewCard(
+                            modeLabel = audioPreview.modeLabel,
+                            audioLabel = audioPreview.audioLabel,
+                            helperText = audioPreview.helperText,
+                            previewUri = audioPreview.previewUri,
+                            primaryActionLabel = audioPreview.primaryActionLabel,
+                            onPrimaryAction = onOpenSettings,
+                            secondaryActionLabel = audioPreview.secondaryActionLabel,
+                            onSecondaryAction = audioPreview.secondaryAction
+                        )
+                    }
+
+                    item {
+                        RecordingQuickToggleCard(
+                            enabled = state.isRecordingEnabled,
+                            onEnabledChange = viewModel::onRecordingEnabledChange
                         )
                     }
 
@@ -486,39 +567,60 @@ private fun ScheduleStateCard(
 }
 
 @Composable
-private fun ScheduledBanner(runningLabel: String) {
+private fun RecordingQuickToggleCard(
+    enabled: Boolean,
+    onEnabledChange: (Boolean) -> Unit
+) {
     Surface(
+        modifier = Modifier.fillMaxWidth(),
         tonalElevation = 1.dp,
-        shape = RoundedCornerShape(32.dp),
+        shape = RoundedCornerShape(28.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             AnimatedIcon(
-                imageVector = Icons.Rounded.Phone,
+                imageVector = Icons.Outlined.Mic,
                 contentDescription = null,
                 shape = CircleShape,
-                backgroundColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-                tint = MaterialTheme.colorScheme.primary,
-                isRinging = true,
-                isActive = true
+                backgroundColor = if (enabled) {
+                    MaterialTheme.colorScheme.primaryContainer
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainer
+                },
+                tint = if (enabled) {
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                isActive = enabled
             )
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = stringResource(R.string.schedule_state_running),
-                    style = MaterialTheme.typography.titleMedium
+                    text = stringResource(R.string.dashboard_recording_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = runningLabel,
+                    text = if (enabled) {
+                        stringResource(R.string.dashboard_recording_enabled)
+                    } else {
+                        stringResource(R.string.dashboard_recording_disabled)
+                    },
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+            Switch(
+                checked = enabled,
+                onCheckedChange = onEnabledChange
+            )
         }
     }
 }
@@ -530,13 +632,22 @@ private fun BottomActionBar(
     containerColor: androidx.compose.ui.graphics.Color,
     contentColor: androidx.compose.ui.graphics.Color,
     isRinging: Boolean,
+    extraBottomPadding: androidx.compose.ui.unit.Dp,
+    applyBottomInset: Boolean,
     onClick: () -> Unit
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
+            .then(
+                if (applyBottomInset) {
+                    Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
+                } else {
+                    Modifier
+                }
+            )
             .padding(horizontal = 16.dp, vertical = 12.dp)
+            .padding(bottom = extraBottomPadding)
     ) {
         Surface(
             modifier = Modifier
@@ -973,6 +1084,92 @@ private data class PickerState(
     val flingBehavior: androidx.compose.foundation.gestures.FlingBehavior,
     val itemHeightPx: Int
 )
+
+private data class AnswerPlaybackPreview(
+    val modeLabel: String,
+    val audioLabel: String,
+    val helperText: String,
+    val previewUri: String,
+    val primaryActionLabel: String,
+    val secondaryActionLabel: String? = null,
+    val secondaryAction: (() -> Unit)? = null
+)
+
+@Composable
+private fun answerPlaybackPreview(
+    state: FakeCallUiState,
+    onClearAudio: () -> Unit
+): AnswerPlaybackPreview {
+    val selectedAudioLabel = state.selectedAudioName.ifBlank {
+        stringResource(R.string.audio_preview_selected_audio_fallback)
+    }
+    val rootNode = state.ivrConfig?.let { it.nodes[it.rootId] }
+
+    return when (state.answerAudioMode) {
+        AnswerAudioMode.MP3_IVR -> {
+            val folderName = state.mp3IvrFolderName.ifBlank {
+                stringResource(R.string.settings_mp3_ivr_no_folder_selected)
+            }
+            val helperText = if (state.mp3IvrFolderUri.isBlank()) {
+                stringResource(R.string.audio_preview_mp3_ivr_missing_folder)
+            } else {
+                stringResource(R.string.audio_preview_mp3_ivr_helper)
+            }
+            AnswerPlaybackPreview(
+                modeLabel = stringResource(R.string.audio_preview_mode_mp3_ivr),
+                audioLabel = folderName,
+                helperText = helperText,
+                previewUri = "",
+                primaryActionLabel = stringResource(R.string.action_configure_ivr)
+            )
+        }
+
+        AnswerAudioMode.CUSTOM_IVR -> {
+            val rootLabel = rootNode?.audioLabel.orEmpty()
+                .ifBlank { rootNode?.title.orEmpty() }
+                .ifBlank { stringResource(R.string.default_ivr_node_title) }
+                .ifBlank { stringResource(R.string.audio_preview_silent_after_answer) }
+            val helperText = if (rootNode?.audioUri?.isNotBlank() == true) {
+                stringResource(R.string.audio_preview_custom_ivr_helper)
+            } else {
+                stringResource(R.string.audio_preview_custom_ivr_missing_root_helper)
+            }
+            AnswerPlaybackPreview(
+                modeLabel = stringResource(R.string.audio_preview_mode_custom_ivr),
+                audioLabel = rootLabel,
+                helperText = helperText,
+                previewUri = rootNode?.audioUri.orEmpty(),
+                primaryActionLabel = stringResource(R.string.action_configure_ivr)
+            )
+        }
+
+        AnswerAudioMode.AUDIO_FILE -> AnswerPlaybackPreview(
+            modeLabel = stringResource(R.string.audio_preview_mode_selected_audio),
+            audioLabel = if (state.selectedAudioUri.isBlank()) {
+                stringResource(R.string.audio_preview_silent_after_answer)
+            } else {
+                selectedAudioLabel
+            },
+            helperText = if (state.selectedAudioUri.isBlank()) {
+                stringResource(R.string.audio_preview_selected_audio_missing_helper)
+            } else {
+                stringResource(R.string.audio_preview_selected_audio_helper)
+            },
+            previewUri = state.selectedAudioUri,
+            primaryActionLabel = stringResource(R.string.action_change_audio),
+            secondaryActionLabel = stringResource(R.string.action_clear_audio),
+            secondaryAction = onClearAudio
+        )
+
+        AnswerAudioMode.SILENT -> AnswerPlaybackPreview(
+            modeLabel = stringResource(R.string.audio_preview_mode_silent),
+            audioLabel = stringResource(R.string.audio_preview_silent_after_answer),
+            helperText = stringResource(R.string.audio_preview_silent_helper),
+            previewUri = "",
+            primaryActionLabel = stringResource(R.string.action_choose_audio)
+        )
+    }
+}
 
 @Composable
 private fun rememberPickerState(initialIndex: Int): PickerState {

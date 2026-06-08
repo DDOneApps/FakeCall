@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Fake Call</string>
-
     <!-- Onboarding -->
     <string name="onboarding_title">FakeCall-ге қош келдіңіз</string>
     <string name="onboarding_subtitle">Экспрессивті анимациясы және жедел жоспарлауы бар жоғары сапалы жалған қоңырау тәжірибесі.</string>
@@ -24,11 +23,9 @@
     <string name="permission_completed">Орындалды</string>
     <string name="onboarding_calling_accounts_help_title">Қоңырау аккаунттары параметрлерін аша алмайсыз ба?</string>
     <string name="onboarding_calling_accounts_help_subtitle">Кейбір OnePlus/Oppo/Realme/Samsung құрылғыларында экран жасырылған. ADB арқылы тікелей ашуға болады:</string>
-    <string name="onboarding_adb_command" translatable="false">adb shell am start -a android.intent.action.MAIN -n com.android.server.telecom/.settings.EnableAccountPreferenceActivity</string>
     <string name="onboarding_all_set">Бәрі дайын! Алғашқы жалған қоңырауды жоспарлауға болады.</string>
     <string name="onboarding_finish_setup">Баптауды аяқтау</string>
     <string name="onboarding_finish_setup_needs_permissions">Баптауды аяқтау (рұқсаттар қажет)</string>
-
     <!-- Dashboard -->
     <string name="app_title">FakeCall</string>
     <string name="app_subtitle">Мінсіз шығу жолыңызды жоспарлаңыз</string>
@@ -54,7 +51,6 @@
     <string name="exact_time_picker_dialog_title">Нақты уақытты таңдау</string>
     <string name="wheel_picker_minutes">МИН</string>
     <string name="wheel_picker_seconds">СЕК</string>
-
     <!-- Settings -->
     <string name="cd_back">Артқа</string>
     <string name="settings_title">Параметрлер</string>
@@ -102,19 +98,29 @@
     <string name="settings_apply_to_defaults">Әдепкілерге қолдану</string>
     <string name="settings_presets_note">Алдын ала орнатулар іске қосқышты ұзақ басқанда қолданба әрекеттері және жылдам параметрлер тақтасы (1-5 алдын ала орнату) ретінде пайда болады.</string>
     <string name="settings_automation_action_note">Әрекет: `com.upnp.fakeCall.TRIGGER` және `caller_name`, `caller_number`, `delay` қосымшалары.</string>
-    <string name="settings_category_mailbox">Пошта жәшігі (IVR)</string>
-    <string name="settings_mailbox_hub_subtitle">Негізгі баптауларды толтырмай, IVR түйіндерін, бағыттауларын және импорт/экспортты басқарыңыз.</string>
-    <string name="settings_import_mailbox_title">Пошта жәшігі XML-ін импорттау</string>
+    <string name="settings_category_mailbox">Custom keybinds (IVR)</string>
+    <string name="settings_mailbox_hub_subtitle">Configure IVR behavior with either custom node mappings or MP3 folder navigation.</string>
+    <string name="settings_import_mailbox_title">Import IVR XML</string>
     <string name="settings_import_mailbox_subtitle">Сақталған IVR ағашын жүктеу.</string>
-    <string name="settings_export_mailbox_title">Пошта жәшігі XML-ін экспорттау</string>
+    <string name="settings_ivr_mode_title">IVR mode</string>
+    <string name="settings_ivr_mode_subtitle">Custom mode uses your manual key mappings. MP3 player mode auto-maps keys from the selected folder and announces options with TTS.</string>
+    <string name="settings_ivr_mode_custom">Custom mode</string>
+    <string name="settings_ivr_mode_mp3">MP3 player mode</string>
+    <string name="settings_mp3_ivr_mode_title">MP3-player IVR mode</string>
+    <string name="settings_mp3_ivr_mode_subtitle">Auto-map keys from a selected folder and use TTS to announce entries.</string>
+    <string name="settings_mp3_ivr_folder_title">Select MP3 IVR folder</string>
+    <string name="settings_mp3_ivr_folder_subtitle">Current folder: %s</string>
+    <string name="settings_mp3_ivr_clear_folder_title">Clear MP3 IVR folder</string>
+    <string name="settings_mp3_ivr_clear_folder_subtitle">Disable folder-based IVR navigation source.</string>
+    <string name="settings_mp3_ivr_no_folder_selected">No folder selected</string>
+    <string name="settings_export_mailbox_title">Export IVR XML</string>
     <string name="settings_export_mailbox_subtitle">Ағымдағы IVR ағашыңызды бөлісу.</string>
     <string name="settings_add_node_title">Мәзір түйінін қосу</string>
     <string name="settings_add_node_subtitle">Жаңа IVR мәзірін жасау.</string>
-    <string name="settings_no_mailbox_nodes">Пошта жәшігі түйіндері әлі жоқ.</string>
+    <string name="settings_no_mailbox_nodes">No IVR nodes yet.</string>
     <string name="settings_about_title">Туралы және жаңартулар</string>
     <string name="settings_current_version">Ағымдағы нұсқа: %s</string>
     <string name="settings_github_repo">GitHub репозиторийі</string>
-    <string name="settings_github_repo_name" translatable="false">DDOneApps/FakeCall</string>
     <string name="settings_checking_updates">Тексерілуде\u2026</string>
     <string name="settings_check_for_updates">Жаңартуларды тексеру</string>
     <string name="snackbar_up_to_date">Сіз соңғы нұсқаны пайдаланасыз.</string>
@@ -143,11 +149,17 @@
     <string name="dialog_target_node_label">Мақсатты түйін</string>
     <string name="dialog_add_another_node">Бейнелеулер жасау үшін басқа түйін қосыңыз.</string>
     <string name="action_add">Қосу</string>
-
     <!-- Components -->
     <string name="caller_details_title">Қоңырау шалушы мәліметтері</string>
+    <string name="caller_mode_manual">Name + number</string>
+    <string name="caller_mode_contact">Contact</string>
     <string name="label_caller_name">Қоңырау шалушы атауы</string>
     <string name="label_caller_number">Қоңырау шалушы нөмірі</string>
+    <string name="action_select_contact">Select contact</string>
+    <string name="selected_short">Selected</string>
+    <string name="selected_contact_title">Selected contact</string>
+    <string name="pinned_contacts_title">Pinned contacts</string>
+    <string name="recent_contacts_title">Recent contacts</string>
     <string name="hint_shown_on_incoming_call">Кіріс қоңырау экранында көрсетіледі.</string>
     <string name="timing_title">Уақыт</string>
     <string name="label_saved_presets">Сақталған алдын ала орнатулар</string>
@@ -158,21 +170,17 @@
     <string name="action_play">Ойнату</string>
     <string name="action_open_settings">Параметрлерді ашу</string>
     <string name="action_clear_audio">Аудиоды тазалау</string>
-
     <!-- Common actions -->
     <string name="action_cancel">Болдырмау</string>
     <string name="action_remove">Жою</string>
     <string name="action_apply">Қолдану</string>
-
     <!-- Default values -->
     <string name="default_audio_name">Әдепкі</string>
     <string name="default_provider_name">Жалған қоңырау провайдері</string>
-    <string name="default_recordings_folder" translatable="false">Downloads/FakeCall</string>
     <string name="default_ivr_node_title">Мәзір</string>
     <string name="default_caller_name">Белгісіз қоңырау шалушы</string>
     <string name="default_selected_folder">Таңдалған қалта</string>
     <string name="default_selected_audio">Таңдалған аудио</string>
-
     <!-- Notifications -->
     <string name="notification_channel_scheduler">Жалған қоңырау жоспарлаушысы</string>
     <string name="notification_channel_recording">Қоңырауды жазу</string>
@@ -182,7 +190,6 @@
     <string name="notification_scheduled_title_with_name">Жалған қоңырау: %s</string>
     <string name="notification_scheduled_text">%2$s нөмірінен %1$d секундтан кейін кіріс қоңырау</string>
     <string name="notification_unknown_caller">Белгісіз</string>
-
     <!-- Quick Trigger Tile -->
     <string name="tile_preset_label">Алдын ала орнату %d</string>
     <string name="tile_service_preset_1">FakeCall алдын ала орнатуы 1</string>
@@ -196,18 +203,15 @@
     <string name="toast_preset_not_configured">%d алдын ала орнатуы конфигурацияланбаған</string>
     <string name="toast_preset_run_failed">%d алдын ала орнатуын іске қосу мүмкін болмады</string>
     <string name="toast_call_scheduling_failed">Жалған қоңырауды жоспарлау мүмкін болмады</string>
-
     <!-- Update banner -->
     <string name="update_available_banner">%s жаңартуы қолжетімді!</string>
     <string name="action_download">Жүктеп алу</string>
     <string name="cd_dismiss_update">Жаңарту хабарламасын жабу</string>
-
     <!-- Misc labels -->
     <string name="label_unknown">Белгісіз</string>
     <string name="label_version_prefix">v</string>
     <string name="delay_now">Қазір</string>
     <string name="settings_mapping_chip_label">%1$s → %2$s</string>
-
     <!-- Status messages -->
     <string name="status_grant_permissions">Жалғастыру үшін телефон рұқсаттарын беріңіз.</string>
     <string name="status_grant_permissions_first">Алдымен телефон рұқсаттарын беріңіз.</string>
@@ -235,10 +239,26 @@
     <string name="status_grant_permissions_scheduling">Жоспарлаудан бұрын телефон рұқсаттарын беріңіз.</string>
     <string name="status_enable_calling_accounts">Алдымен жүйелік Қоңырау аккаунттарында осы қолданбаны қосыңыз.</string>
     <string name="status_enter_caller_number_scheduling">Жоспарлаудан бұрын қоңырау шалушы нөмірін енгізіңіз.</string>
+    <string name="status_select_contact_scheduling">Select a contact before scheduling.</string>
+    <string name="status_contact_pick_failed">Could not read this contact. Please select another one.</string>
     <string name="status_triggering_now">Кіріс қоңырау қазір іске қосылуда.</string>
     <string name="status_trigger_failed">Қоңырауды іске қосу мүмкін болмады. Қоңырау аккаунттарында провайдерді қосыңыз.</string>
     <string name="status_enable_exact_alarms">Нақты қоңырауларды жоспарлау үшін дәл дабылдарды қосыңыз.</string>
+    <string name="status_select_mp3_ivr_folder">Select an MP3 IVR folder to use this mode.</string>
     <string name="status_timer_cancelled">Таймер тоқтатылды.</string>
     <string name="status_call_scheduled_for">Қоңырау %s уақытына жоспарланды.</string>
     <string name="status_timer_started_for">%s уақытына таймер іске қосылды.</string>
+    <string name="tts_mp3_ivr_empty_folder">The selected folder has no audio files or subfolders.</string>
+    <string name="tts_mp3_ivr_menu_intro">%1$s menu.</string>
+    <string name="tts_mp3_ivr_page_announcement">Page %1$d of %2$d.</string>
+    <string name="tts_mp3_ivr_menu_item_folder">Press %1$d for folder %2$s.</string>
+    <string name="tts_mp3_ivr_menu_item_audio">Press %1$d for audio %2$s.</string>
+    <string name="tts_mp3_ivr_next_page_hint">Press pound for the next page.</string>
+    <string name="tts_mp3_ivr_previous_page_hint">Press star for the previous page.</string>
+    <string name="tts_mp3_ivr_back_folder_hint">Press 0 to go back to the previous folder.</string>
+    <string name="tts_mp3_ivr_no_next_page">No next page available.</string>
+    <string name="tts_mp3_ivr_no_previous_page">No previous page available.</string>
+    <string name="tts_mp3_ivr_root_folder">You are already at the root folder.</string>
+    <string name="tts_mp3_ivr_invalid_selection">Invalid selection.</string>
+    <string name="tts_mp3_ivr_audio_failed">Could not play this audio file.</string>
 </resources>

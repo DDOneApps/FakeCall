@@ -12,6 +12,8 @@ import android.media.MediaRecorder
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
+import android.os.Handler
+import android.os.Looper
 import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.telecom.CallAudioState
@@ -19,6 +21,8 @@ import android.telecom.Connection
 import android.telecom.DisconnectCause
 import android.telecom.PhoneAccount
 import android.telecom.TelecomManager
+import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.upnp.fakeCall.ivr.IvrConfigStore
@@ -31,7 +35,8 @@ import java.util.Locale
 class FakeConnection(
     private val context: Context,
     private val callerName: String,
-    private val callerNumber: String
+    private val callerNumber: String,
+    private val ringTimeoutSeconds: Int
 ) : Connection() {
 
     private var mediaPlayer: MediaPlayer? = null
@@ -43,6 +48,19 @@ class FakeConnection(
     private val ivrStore = IvrConfigStore()
     private var ivrStateMachine: IvrStateMachine? = null
     private var ivrAudioAttributes: AudioAttributes? = null
+    private var ttsEngine: TextToSpeech? = null
+    private var pendingTtsRequest: TtsRequest? = null
+    private var repeatingTtsMessage: String? = null
+    private val folderNavStack = mutableListOf<FolderNavState>()
+    private val runtimeOverrides: RuntimeOverrides = consumeRuntimeOverrides()
+    private val ringTimeoutHandler = Handler(Looper.getMainLooper())
+    private val ringTimeoutRunnable = Runnable {
+        if (!wasAnswered) {
+            disconnectWithCause(DisconnectCause.MISSED)
+        }
+    }
+    private var wasAnswered = false
+    private var snoozeTriggered = false
 
     init {
         val displayName = callerName.ifBlank { callerNumber }
@@ -52,33 +70,41 @@ class FakeConnection(
         setAudioModeIsVoip(true)
         setInitializing()
         setRinging()
+        scheduleRingTimeoutIfNeeded()
     }
 
     override fun onAnswer() {
+        cancelRingTimeout()
+        wasAnswered = true
         setActive()
         runCatching {
             audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
         }
         runCatching {
-            // Start on earpiece, but allow system UI to switch routes afterward.
-            setAudioRoute(CallAudioState.ROUTE_EARPIECE)
-            audioManager.isSpeakerphoneOn = false
-            runCatching { audioManager.stopBluetoothSco() }
-            runCatching { audioManager.isBluetoothScoOn = false }
+            val defaultRoute = if (runtimeOverrides.speakerDefault == AlarmSpeakerDefault.SPEAKER) {
+                CallAudioState.ROUTE_SPEAKER
+            } else {
+                CallAudioState.ROUTE_EARPIECE
+            }
+            setAudioRoute(defaultRoute)
+            applyAudioRoute(defaultRoute)
         }
-        startVoicePlayback()
         maybeStartMicRecording()
+        startVoicePlayback()
     }
 
     override fun onReject() {
+        cancelRingTimeout()
         disconnectWithCause(DisconnectCause.REJECTED)
     }
 
     override fun onDisconnect() {
+        cancelRingTimeout()
         disconnectWithCause(DisconnectCause.LOCAL)
     }
 
     override fun onAbort() {
+        cancelRingTimeout()
         disconnectWithCause(DisconnectCause.CANCELED)
     }
 
@@ -123,6 +149,12 @@ class FakeConnection(
 
     override fun onPlayDtmfTone(c: Char) {
         super.onPlayDtmfTone(c)
+        if (c == '1' && runtimeOverrides.snoozeEnabled) {
+            triggerSnooze()
+            disconnectWithCause(DisconnectCause.LOCAL)
+            return
+        }
+        if (handleFolderModeDtmf(c)) return
         val machine = ivrStateMachine ?: return
         val next = machine.handleDtmf(c) ?: return
         val uriString = next.audioUri
@@ -136,13 +168,30 @@ class FakeConnection(
     }
 
     private fun disconnectWithCause(code: Int) {
+        cancelRingTimeout()
+        if (!wasAnswered && runtimeOverrides.snoozeEnabled) {
+            triggerSnooze()
+        }
         stopAndReleasePlayer()
+        shutdownTts()
+        folderNavStack.clear()
         stopAndReleaseRecording()
         runCatching {
             audioManager.mode = AudioManager.MODE_NORMAL
         }
         setDisconnected(DisconnectCause(code))
         destroy()
+    }
+
+    private fun scheduleRingTimeoutIfNeeded() {
+        val timeoutMillis = ringTimeoutSeconds.coerceAtLeast(0) * 1_000L
+        if (timeoutMillis <= 0L) return
+        ringTimeoutHandler.removeCallbacks(ringTimeoutRunnable)
+        ringTimeoutHandler.postDelayed(ringTimeoutRunnable, timeoutMillis)
+    }
+
+    private fun cancelRingTimeout() {
+        ringTimeoutHandler.removeCallbacks(ringTimeoutRunnable)
     }
 
     private fun startVoicePlayback() {
@@ -152,7 +201,55 @@ class FakeConnection(
 
         val audioAttributes = buildVoiceAudioAttributes()
         ivrAudioAttributes = audioAttributes
+        if (runtimeOverrides.messageMode == RuntimeMessageMode.TTS) {
+            val message = runtimeOverrides.ttsMessage.ifBlank {
+                if (callerName.isNotBlank()) {
+                    context.getString(R.string.alarm_tts_default_message_with_name, callerName)
+                } else {
+                    context.getString(R.string.alarm_tts_default_message)
+                }
+            }
+            speakPrompt(message, repeat = runtimeOverrides.repeatTtsMessage)
+            return
+        }
+        if (runtimeOverrides.customAudioUri.isNotBlank()) {
+            val runtimeUri = runCatching { Uri.parse(runtimeOverrides.customAudioUri) }.getOrNull()
+            if (runtimeUri == null) {
+                Log.i(TAG, "Runtime audio override was invalid; skipping call playback.")
+                return
+            }
+            val started = startPlayerFromUri(runtimeUri, audioAttributes)
+            if (!started) {
+                Log.e(TAG, "Failed to start runtime call playback for uri=$runtimeUri")
+            }
+            return
+        }
 
+        when (loadAnswerAudioMode()) {
+            AnswerAudioMode.SILENT -> {
+                Log.i(TAG, "Answer audio mode is silent; skipping call playback.")
+            }
+            AnswerAudioMode.AUDIO_FILE -> {
+                val selectedUri = loadSelectedAudioUri()
+                if (selectedUri == null) {
+                    Log.i(TAG, "Answer audio mode is audio file, but no audio file is selected.")
+                    return
+                }
+                val started = startPlayerFromUri(selectedUri, audioAttributes)
+                if (!started) {
+                    Log.e(TAG, "Failed to start call playback for uri=$selectedUri")
+                }
+            }
+            AnswerAudioMode.CUSTOM_IVR -> {
+                startCustomIvrMode(audioAttributes)
+            }
+            AnswerAudioMode.MP3_IVR -> {
+                startFolderMode()
+            }
+        }
+    }
+
+    private fun startCustomIvrMode(audioAttributes: AudioAttributes) {
         val ivrConfig = ivrStore.load(context)
         ivrStateMachine = ivrConfig?.let { IvrStateMachine(it) }
 
@@ -162,21 +259,310 @@ class FakeConnection(
             ?.takeIf { it.isNotBlank() }
             ?.let { runCatching { Uri.parse(it) }.getOrNull() }
 
-        if (ivrAudio != null) {
-            val started = startPlayerFromUri(ivrAudio, audioAttributes)
-            if (started) return
-        }
-
-        val selectedUri = loadSelectedAudioUri()
-        if (selectedUri == null) {
-            Log.i(TAG, "No audio file selected; skipping call playback.")
+        if (ivrAudio == null) {
+            Log.i(TAG, "Custom IVR mode is selected, but the root node has no audio.")
             return
         }
 
-        val started = startPlayerFromUri(selectedUri, audioAttributes)
+        val started = startPlayerFromUri(ivrAudio, audioAttributes)
         if (!started) {
-            Log.e(TAG, "Failed to start call playback for uri=$selectedUri")
+            Log.e(TAG, "Failed to start custom IVR root audio for uri=$ivrAudio")
         }
+    }
+
+    private fun startFolderMode() {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+        ivrStateMachine = null
+        val rootUri = prefs.getString(KEY_MP3_IVR_FOLDER_URI, "")
+            .orEmpty()
+            .takeIf { it.isNotBlank() }
+            ?.let { runCatching { Uri.parse(it) }.getOrNull() }
+        if (rootUri == null) {
+            folderNavStack.clear()
+            speakFolderPrompt(context.getString(R.string.status_select_mp3_ivr_folder))
+            return
+        }
+
+        val rootName = prefs.getString(
+            KEY_MP3_IVR_FOLDER_NAME,
+            context.getString(R.string.settings_mp3_ivr_no_folder_selected)
+        ).orEmpty().ifBlank { context.getString(R.string.settings_mp3_ivr_no_folder_selected) }
+
+        val entries = listFolderEntries(rootUri)
+        folderNavStack.clear()
+        folderNavStack.add(
+            FolderNavState(
+                folderUri = rootUri,
+                folderName = rootName,
+                entries = entries
+            )
+        )
+        if (entries.isEmpty()) {
+            speakFolderPrompt(context.getString(R.string.tts_mp3_ivr_empty_folder))
+            return
+        }
+
+        speakCurrentFolderMenu()
+    }
+
+    private fun handleFolderModeDtmf(digit: Char): Boolean {
+        val current = folderNavStack.lastOrNull() ?: return false
+        when (digit) {
+            '#' -> {
+                val hasNext = (current.pageIndex + 1) * FOLDER_PAGE_SIZE < current.entries.size
+                if (hasNext) {
+                    current.pageIndex += 1
+                } else {
+                    speakFolderPrompt(context.getString(R.string.tts_mp3_ivr_no_next_page))
+                }
+                speakCurrentFolderMenu()
+                return true
+            }
+            '*' -> {
+                if (current.pageIndex > 0) {
+                    current.pageIndex -= 1
+                } else {
+                    speakFolderPrompt(context.getString(R.string.tts_mp3_ivr_no_previous_page))
+                }
+                speakCurrentFolderMenu()
+                return true
+            }
+            '0' -> {
+                if (folderNavStack.size > 1) {
+                    folderNavStack.removeLast()
+                    speakCurrentFolderMenu()
+                } else {
+                    speakFolderPrompt(context.getString(R.string.tts_mp3_ivr_root_folder))
+                }
+                return true
+            }
+            in '1'..'9' -> {
+                val item = currentPageEntries(current).getOrNull(digit - '1')
+                if (item == null) {
+                    speakFolderPrompt(context.getString(R.string.tts_mp3_ivr_invalid_selection))
+                    return true
+                }
+                if (item.isDirectory) {
+                    openFolderEntry(item)
+                } else {
+                    playFolderAudioEntry(item)
+                }
+                return true
+            }
+            else -> return true
+        }
+    }
+
+    private fun openFolderEntry(entry: FolderNavEntry) {
+        val nestedEntries = listFolderEntries(entry.uri)
+        folderNavStack.add(
+            FolderNavState(
+                folderUri = entry.uri,
+                folderName = entry.displayName,
+                entries = nestedEntries
+            )
+        )
+        if (nestedEntries.isEmpty()) {
+            speakFolderPrompt(context.getString(R.string.tts_mp3_ivr_empty_folder))
+        }
+        speakCurrentFolderMenu()
+    }
+
+    private fun playFolderAudioEntry(entry: FolderNavEntry) {
+        val attrs = ivrAudioAttributes ?: buildVoiceAudioAttributes()
+        runCatching { ttsEngine?.stop() }
+        stopAndReleasePlayer()
+        val started = startPlayerFromUri(
+            uri = entry.uri,
+            audioAttributes = attrs,
+            loop = false,
+            onCompletion = { speakCurrentFolderMenu() }
+        )
+        if (!started) {
+            speakFolderPrompt(context.getString(R.string.tts_mp3_ivr_audio_failed))
+        }
+    }
+
+    private fun speakCurrentFolderMenu() {
+        val state = folderNavStack.lastOrNull() ?: return
+        val entries = currentPageEntries(state)
+        if (entries.isEmpty()) {
+            speakFolderPrompt(context.getString(R.string.tts_mp3_ivr_empty_folder))
+            return
+        }
+
+        val promptParts = mutableListOf<String>()
+        promptParts += context.getString(R.string.tts_mp3_ivr_menu_intro, state.folderName)
+        val totalPages = ((state.entries.size - 1) / FOLDER_PAGE_SIZE) + 1
+        if (totalPages > 1) {
+            promptParts += context.getString(
+                R.string.tts_mp3_ivr_page_announcement,
+                state.pageIndex + 1,
+                totalPages
+            )
+        }
+
+        entries.forEachIndexed { index, entry ->
+            val key = index + 1
+            promptParts += if (entry.isDirectory) {
+                context.getString(R.string.tts_mp3_ivr_menu_item_folder, key, entry.displayName)
+            } else {
+                context.getString(R.string.tts_mp3_ivr_menu_item_audio, key, entry.displayName)
+            }
+        }
+
+        if ((state.pageIndex + 1) * FOLDER_PAGE_SIZE < state.entries.size) {
+            promptParts += context.getString(R.string.tts_mp3_ivr_next_page_hint)
+        }
+        if (state.pageIndex > 0) {
+            promptParts += context.getString(R.string.tts_mp3_ivr_previous_page_hint)
+        }
+        if (folderNavStack.size > 1) {
+            promptParts += context.getString(R.string.tts_mp3_ivr_back_folder_hint)
+        }
+
+        speakFolderPrompt(promptParts.joinToString(" "))
+    }
+
+    private fun currentPageEntries(state: FolderNavState): List<FolderNavEntry> {
+        val from = state.pageIndex * FOLDER_PAGE_SIZE
+        if (from >= state.entries.size) return emptyList()
+        return state.entries.drop(from).take(FOLDER_PAGE_SIZE)
+    }
+
+    private fun listFolderEntries(folderUri: Uri): List<FolderNavEntry> {
+        val resolver = context.contentResolver
+        val folderId = runCatching { DocumentsContract.getDocumentId(folderUri) }.getOrElse {
+            DocumentsContract.getTreeDocumentId(folderUri)
+        }
+        val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(folderUri, folderId)
+
+        val entries = mutableListOf<FolderNavEntry>()
+        val projection = arrayOf(
+            DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+            DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+            DocumentsContract.Document.COLUMN_MIME_TYPE
+        )
+
+        runCatching {
+            resolver.query(childrenUri, projection, null, null, null)?.use { cursor ->
+                val idCol = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
+                val nameCol = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
+                val mimeCol = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_MIME_TYPE)
+                while (cursor.moveToNext()) {
+                    val docId = if (idCol >= 0) cursor.getString(idCol) else null
+                    val name = if (nameCol >= 0) cursor.getString(nameCol) else null
+                    val mime = if (mimeCol >= 0) cursor.getString(mimeCol) else null
+                    if (docId.isNullOrBlank()) continue
+                    val isDirectory = mime == DocumentsContract.Document.MIME_TYPE_DIR
+                    val isAudio = !isDirectory && looksLikeAudio(mime, name)
+                    if (!isDirectory && !isAudio) continue
+
+                    val childUri = DocumentsContract.buildDocumentUriUsingTree(folderUri, docId)
+                    entries += FolderNavEntry(
+                        uri = childUri,
+                        displayName = name.orEmpty().ifBlank { context.getString(R.string.label_unknown) },
+                        isDirectory = isDirectory
+                    )
+                }
+            }
+        }
+
+        return entries.sortedWith(
+            compareByDescending<FolderNavEntry> { it.isDirectory }
+                .thenBy { it.displayName.lowercase(Locale.getDefault()) }
+        )
+    }
+
+    private fun looksLikeAudio(mimeType: String?, displayName: String?): Boolean {
+        if (mimeType?.startsWith("audio/") == true) return true
+        val lowerName = displayName.orEmpty().lowercase(Locale.getDefault())
+        return lowerName.endsWith(".mp3") ||
+            lowerName.endsWith(".wav") ||
+            lowerName.endsWith(".m4a") ||
+            lowerName.endsWith(".aac") ||
+            lowerName.endsWith(".ogg") ||
+            lowerName.endsWith(".flac")
+    }
+
+    private fun speakFolderPrompt(message: String) {
+        speakPrompt(message, repeat = false)
+    }
+
+    private fun speakPrompt(message: String, repeat: Boolean) {
+        if (message.isBlank()) return
+        val existing = ttsEngine
+        if (existing != null) {
+            speakWithTts(existing, message, repeat)
+            return
+        }
+        pendingTtsRequest = TtsRequest(message = message, repeat = repeat)
+        initializeTtsIfNeeded()
+    }
+
+    private fun speakWithTts(tts: TextToSpeech, message: String, repeat: Boolean) {
+        repeatingTtsMessage = if (repeat) message else null
+        runCatching {
+            tts.stop()
+            tts.speak(
+                message,
+                TextToSpeech.QUEUE_FLUSH,
+                null,
+                if (repeat) TTS_REPEAT_UTTERANCE_ID else "tts_${System.currentTimeMillis()}"
+            )
+        }
+    }
+
+    private fun initializeTtsIfNeeded() {
+        if (ttsEngine != null) return
+        var newEngine: TextToSpeech? = null
+        newEngine = TextToSpeech(context.applicationContext) { status ->
+            if (status != TextToSpeech.SUCCESS) {
+                runCatching { newEngine?.shutdown() }
+                return@TextToSpeech
+            }
+            ttsEngine = newEngine
+            runCatching {
+                newEngine?.language = Locale.getDefault()
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                runCatching {
+                    newEngine?.setAudioAttributes(buildVoiceAudioAttributes())
+                }
+            }
+            newEngine?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                override fun onStart(utteranceId: String?) = Unit
+
+                override fun onDone(utteranceId: String?) {
+                    if (utteranceId != TTS_REPEAT_UTTERANCE_ID) return
+                    val message = repeatingTtsMessage ?: return
+                    ringTimeoutHandler.postDelayed({
+                        val activeEngine = ttsEngine ?: return@postDelayed
+                        if (activeEngine === newEngine && repeatingTtsMessage == message) {
+                            speakWithTts(activeEngine, message, repeat = true)
+                        }
+                    }, TTS_REPEAT_DELAY_MILLIS)
+                }
+
+                @Deprecated("Deprecated in Java")
+                override fun onError(utteranceId: String?) = Unit
+            })
+            pendingTtsRequest?.let { request ->
+                speakWithTts(newEngine!!, request.message, request.repeat)
+            }
+            pendingTtsRequest = null
+        }
+    }
+
+    private fun shutdownTts() {
+        pendingTtsRequest = null
+        repeatingTtsMessage = null
+        ttsEngine?.let { tts ->
+            runCatching { tts.stop() }
+            runCatching { tts.shutdown() }
+        }
+        ttsEngine = null
     }
 
     private fun maybeStartMicRecording() {
@@ -200,7 +586,6 @@ class FakeConnection(
             }
 
             recorder.apply {
-                // MIC is more stable for continuous capture during self-managed calls.
                 setAudioSource(MediaRecorder.AudioSource.MIC)
                 setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
                 setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
@@ -222,16 +607,24 @@ class FakeConnection(
         }
     }
 
-    private fun startPlayerFromUri(uri: Uri, audioAttributes: AudioAttributes): Boolean {
+    private fun startPlayerFromUri(
+        uri: Uri,
+        audioAttributes: AudioAttributes,
+        loop: Boolean = true,
+        onCompletion: (() -> Unit)? = null
+    ): Boolean {
         return runCatching {
             val player = MediaPlayer().apply {
                 setAudioAttributes(audioAttributes)
                 setDataSource(context, uri)
-                isLooping = true
+                isLooping = loop
                 setOnErrorListener { _, what, extra ->
                     Log.e(TAG, "MediaPlayer error what=$what extra=$extra for uri=$uri")
                     stopAndReleasePlayer()
                     true
+                }
+                if (onCompletion != null) {
+                    setOnCompletionListener { onCompletion() }
                 }
                 prepare()
                 start()
@@ -272,9 +665,14 @@ class FakeConnection(
         val selectedTreeUri = loadRecordingsTreeUri()
         if (selectedTreeUri != null) {
             val fileUri = runCatching {
+                val treeDocumentId = DocumentsContract.getTreeDocumentId(selectedTreeUri)
+                val parentDocumentUri = DocumentsContract.buildDocumentUriUsingTree(
+                    selectedTreeUri,
+                    treeDocumentId
+                )
                 DocumentsContract.createDocument(
                     resolver,
-                    selectedTreeUri,
+                    parentDocumentUri,
                     "audio/mp4",
                     filename
                 )
@@ -311,7 +709,7 @@ class FakeConnection(
 
     private fun isRecordingEnabled(): Boolean {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        return prefs.getBoolean(KEY_RECORDING_ENABLED, true)
+        return prefs.getBoolean(KEY_RECORDING_ENABLED, DEFAULT_RECORDING_ENABLED)
     }
 
     private fun hasRecordAudioPermission(): Boolean {
@@ -338,6 +736,129 @@ class FakeConnection(
         val value = prefs.getString(KEY_AUDIO_URI, "").orEmpty()
         if (value.isBlank()) return null
         return runCatching { Uri.parse(value) }.getOrNull()
+    }
+
+    private fun loadAnswerAudioMode(): AnswerAudioMode {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val stored = prefs.getString(KEY_ANSWER_AUDIO_MODE, "").orEmpty()
+        val selectedAudioUri = prefs.getString(KEY_AUDIO_URI, "").orEmpty()
+        val mp3FolderUri = prefs.getString(KEY_MP3_IVR_FOLDER_URI, "").orEmpty()
+        val parsed = runCatching { AnswerAudioMode.valueOf(stored) }.getOrNull()
+        val legacyMode = if (parsed == null) {
+            when {
+                prefs.getBoolean(KEY_MP3_IVR_MODE_ENABLED, false) && mp3FolderUri.isNotBlank() -> AnswerAudioMode.MP3_IVR
+                selectedAudioUri.isNotBlank() -> AnswerAudioMode.AUDIO_FILE
+                else -> AnswerAudioMode.SILENT
+            }
+        } else {
+            parsed
+        }
+        return when (legacyMode) {
+            AnswerAudioMode.AUDIO_FILE -> if (selectedAudioUri.isNotBlank()) legacyMode else AnswerAudioMode.SILENT
+            AnswerAudioMode.MP3_IVR -> if (mp3FolderUri.isNotBlank()) legacyMode else AnswerAudioMode.SILENT
+            else -> legacyMode
+        }
+    }
+
+    private fun consumeRuntimeOverrides(): RuntimeOverrides {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val hasRuntimeAudioOverride = prefs.getBoolean(KEY_RUNTIME_AUDIO_OVERRIDE_ENABLED, false)
+        val customAudioUri = if (hasRuntimeAudioOverride) {
+            prefs.getString(KEY_RUNTIME_AUDIO_OVERRIDE_URI, "").orEmpty()
+        } else {
+            ""
+        }
+        val messageMode = when (prefs.getString(KEY_RUNTIME_MESSAGE_MODE, "").orEmpty()) {
+            RUNTIME_MESSAGE_MODE_TTS -> RuntimeMessageMode.TTS
+            RUNTIME_MESSAGE_MODE_CUSTOM -> RuntimeMessageMode.CUSTOM_AUDIO
+            else -> RuntimeMessageMode.DEFAULT
+        }
+        val ttsMessage = prefs.getString(KEY_RUNTIME_TTS_MESSAGE, "").orEmpty()
+        val repeatTtsMessage = prefs.getBoolean(KEY_RUNTIME_REPEAT_TTS_MESSAGE, false)
+        val speakerDefault = runCatching {
+            AlarmSpeakerDefault.valueOf(
+                prefs.getString(KEY_RUNTIME_SPEAKER_DEFAULT, AlarmSpeakerDefault.EARPIECE.name).orEmpty()
+            )
+        }.getOrDefault(AlarmSpeakerDefault.EARPIECE)
+        val snoozeEnabled = prefs.getBoolean(KEY_RUNTIME_SNOOZE_ENABLED, false)
+        val snoozeMinutes = prefs.getInt(KEY_RUNTIME_SNOOZE_MINUTES, 5).coerceIn(1, 30)
+        val snoozeAlarmId = prefs.getLong(KEY_RUNTIME_SNOOZE_ALARM_ID, 0L)
+        val snoozeCallerName = prefs.getString(KEY_RUNTIME_SNOOZE_CALLER_NAME, callerName).orEmpty()
+        val snoozeCallerNumber = prefs.getString(KEY_RUNTIME_SNOOZE_CALLER_NUMBER, callerNumber).orEmpty()
+        val snoozeProviderName = prefs.getString(
+            KEY_RUNTIME_SNOOZE_PROVIDER_NAME,
+            context.getString(R.string.default_provider_name)
+        ).orEmpty()
+
+        prefs.edit()
+            .putBoolean(KEY_RUNTIME_AUDIO_OVERRIDE_ENABLED, false)
+            .remove(KEY_RUNTIME_AUDIO_OVERRIDE_URI)
+            .remove(KEY_RUNTIME_AUDIO_OVERRIDE_NAME)
+            .remove(KEY_RUNTIME_MESSAGE_MODE)
+            .remove(KEY_RUNTIME_TTS_MESSAGE)
+            .remove(KEY_RUNTIME_REPEAT_TTS_MESSAGE)
+            .remove(KEY_RUNTIME_SPEAKER_DEFAULT)
+            .remove(KEY_RUNTIME_SNOOZE_ENABLED)
+            .remove(KEY_RUNTIME_SNOOZE_MINUTES)
+            .remove(KEY_RUNTIME_SNOOZE_ALARM_ID)
+            .remove(KEY_RUNTIME_SNOOZE_CALLER_NAME)
+            .remove(KEY_RUNTIME_SNOOZE_CALLER_NUMBER)
+            .remove(KEY_RUNTIME_SNOOZE_PROVIDER_NAME)
+            .apply()
+
+        return RuntimeOverrides(
+            messageMode = messageMode,
+            customAudioUri = customAudioUri,
+            ttsMessage = ttsMessage,
+            repeatTtsMessage = repeatTtsMessage,
+            speakerDefault = speakerDefault,
+            snoozeEnabled = snoozeEnabled,
+            snoozeMinutes = snoozeMinutes,
+            snoozeAlarmId = snoozeAlarmId,
+            snoozeCallerName = snoozeCallerName,
+            snoozeCallerNumber = snoozeCallerNumber,
+            snoozeProviderName = snoozeProviderName
+        )
+    }
+
+    private fun triggerSnooze() {
+        if (snoozeTriggered) return
+        if (!runtimeOverrides.snoozeEnabled) return
+        val number = runtimeOverrides.snoozeCallerNumber.trim()
+        if (number.isBlank()) return
+        val baseAlarm = if (runtimeOverrides.snoozeAlarmId != 0L) {
+            AlarmModeRepository.find(context, runtimeOverrides.snoozeAlarmId)
+        } else {
+            null
+        }
+        val snoozeId = System.currentTimeMillis()
+        val alarm = baseAlarm ?: AlarmModeItem(
+            id = snoozeId,
+            callerName = runtimeOverrides.snoozeCallerName,
+            callerNumber = number,
+            hour = 0,
+            minute = 0,
+            repeatDays = emptySet(),
+            messageMode = if (runtimeOverrides.messageMode == RuntimeMessageMode.TTS) {
+                AlarmMessageMode.APP_VOICE_TTS
+            } else {
+                AlarmMessageMode.CUSTOM_AUDIO
+            },
+            ttsMessage = runtimeOverrides.ttsMessage,
+            repeatTtsMessage = runtimeOverrides.repeatTtsMessage,
+            customAudioUri = runtimeOverrides.customAudioUri,
+            customAudioName = "",
+            snoozeEnabled = runtimeOverrides.snoozeEnabled,
+            snoozeMinutes = runtimeOverrides.snoozeMinutes,
+            speakerDefault = runtimeOverrides.speakerDefault,
+            enabled = true
+        )
+        val snoozeAlarm = alarm.copy(id = snoozeId, repeatDays = emptySet(), enabled = true)
+        val triggerAtMillis = System.currentTimeMillis() + runtimeOverrides.snoozeMinutes * 60_000L
+        val scheduled = AlarmModeScheduler.scheduleSnooze(context, snoozeAlarm, triggerAtMillis)
+        if (scheduled) {
+            snoozeTriggered = true
+        }
     }
 
     private fun loadRecordingsTreeUri(): Uri? {
@@ -399,9 +920,32 @@ class FakeConnection(
     companion object {
         private const val TAG = "FakeConnection"
         private const val PREFS_NAME = "fake_call_prefs"
+        private const val KEY_ANSWER_AUDIO_MODE = "answer_audio_mode"
         private const val KEY_AUDIO_URI = "audio_uri"
+        private const val KEY_RUNTIME_AUDIO_OVERRIDE_ENABLED = "runtime_audio_override_enabled"
+        private const val KEY_RUNTIME_AUDIO_OVERRIDE_URI = "runtime_audio_override_uri"
+        private const val KEY_RUNTIME_AUDIO_OVERRIDE_NAME = "runtime_audio_override_name"
+        private const val KEY_RUNTIME_MESSAGE_MODE = "runtime_message_mode"
+        private const val KEY_RUNTIME_TTS_MESSAGE = "runtime_tts_message"
+        private const val KEY_RUNTIME_REPEAT_TTS_MESSAGE = "runtime_repeat_tts_message"
+        private const val KEY_RUNTIME_SPEAKER_DEFAULT = "runtime_speaker_default"
+        private const val KEY_RUNTIME_SNOOZE_ENABLED = "runtime_snooze_enabled"
+        private const val KEY_RUNTIME_SNOOZE_MINUTES = "runtime_snooze_minutes"
+        private const val KEY_RUNTIME_SNOOZE_ALARM_ID = "runtime_snooze_alarm_id"
+        private const val KEY_RUNTIME_SNOOZE_CALLER_NAME = "runtime_snooze_caller_name"
+        private const val KEY_RUNTIME_SNOOZE_CALLER_NUMBER = "runtime_snooze_caller_number"
+        private const val KEY_RUNTIME_SNOOZE_PROVIDER_NAME = "runtime_snooze_provider_name"
+        private const val RUNTIME_MESSAGE_MODE_CUSTOM = "custom_audio"
+        private const val RUNTIME_MESSAGE_MODE_TTS = "tts"
         private const val KEY_RECORDING_ENABLED = "recording_enabled"
         private const val KEY_RECORDINGS_TREE_URI = "recordings_tree_uri"
+        private const val DEFAULT_RECORDING_ENABLED = false
+        private const val KEY_MP3_IVR_MODE_ENABLED = "mp3_ivr_mode_enabled"
+        private const val KEY_MP3_IVR_FOLDER_URI = "mp3_ivr_folder_uri"
+        private const val KEY_MP3_IVR_FOLDER_NAME = "mp3_ivr_folder_name"
+        private const val FOLDER_PAGE_SIZE = 9
+        private const val TTS_REPEAT_UTTERANCE_ID = "alarm_tts_repeat"
+        private const val TTS_REPEAT_DELAY_MILLIS = 750L
     }
 
     private fun finalizeRecordingDestination(stoppedCleanly: Boolean) {
@@ -464,4 +1008,42 @@ class FakeConnection(
 private data class RecordingDestination(
     val uri: Uri?,
     val file: File?
+)
+
+private data class TtsRequest(
+    val message: String,
+    val repeat: Boolean
+)
+
+private data class FolderNavEntry(
+    val uri: Uri,
+    val displayName: String,
+    val isDirectory: Boolean
+)
+
+private data class FolderNavState(
+    val folderUri: Uri,
+    val folderName: String,
+    val entries: List<FolderNavEntry>,
+    var pageIndex: Int = 0
+)
+
+private enum class RuntimeMessageMode {
+    DEFAULT,
+    CUSTOM_AUDIO,
+    TTS
+}
+
+private data class RuntimeOverrides(
+    val messageMode: RuntimeMessageMode = RuntimeMessageMode.DEFAULT,
+    val customAudioUri: String = "",
+    val ttsMessage: String = "",
+    val repeatTtsMessage: Boolean = false,
+    val speakerDefault: AlarmSpeakerDefault = AlarmSpeakerDefault.EARPIECE,
+    val snoozeEnabled: Boolean = false,
+    val snoozeMinutes: Int = 5,
+    val snoozeAlarmId: Long = 0L,
+    val snoozeCallerName: String = "",
+    val snoozeCallerNumber: String = "",
+    val snoozeProviderName: String = ""
 )

@@ -7,10 +7,10 @@
 <p>
 
 [![GitHub stars](https://img.shields.io/github/stars/DDOneApps/FakeCall?style=for-the-badge)](https://github.com/DDOneApps/FakeCall/stargazers) [![GitHub forks](https://img.shields.io/github/forks/DDOneApps/FakeCall?style=for-the-badge)](https://github.com/DDOneApps/FakeCall/network) [![GitHub issues](https://img.shields.io/github/issues/DDOneApps/FakeCall?style=for-the-badge)](https://github.com/DDOneApps/FakeCall/issues)
-[![Downloads](https://img.shields.io/github/downloads/DDOneApps/FakeCall/total?color=green&style=for-the-badge)](https://github.com/DDOneApps/FakeCall/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/DDOneApps/FakeCall/total?color=green&style=for-the-badge)](https://github.com/DDOneApps/FakeCall/releases/latest) 
+[![Crowdin](https://img.shields.io/badge/dynamic/json?color=red&label=translation&query=$.message&style=for-the-badge&url=https://raw.githubusercontent.com/DDOneApps/FakeCall/main/badge.json&logo=crowdin)](https://crowdin.com/project/fakecall)
 
-[![GitHub license](https://img.shields.io/badge/license-GPL%20v3-red?style=for-the-badge)](LICENSE) <!-- TODO: Add a LICENSE file and update badge -->
-
+[![GitHub license](https://img.shields.io/badge/license-GPL%20v3-red?style=for-the-badge)](LICENSE)
 </p>
 
 **An open-source Android application to simulate incoming calls, featuring a modern Material 3 UI with dynamic Monet support.**
@@ -23,7 +23,7 @@ Ever wanted to get [that Feature of old Samsung phones](https://www.youtube.com/
 Introducing FakeCall. Unlike other apps that merely mock a UI, this app integrates directly with the Android Telecom Framework to provide an indistinguishable calling experience. It has many features to make the call as real as possible.
 
 <p align=center>
-  
+
 ## Features
 
 </p>
@@ -92,11 +92,14 @@ You can also save up to five quick trigger presets from the same section:
 
 ## Screenshots
 
-![Screenshot 1](https://github.com/DDOneApps/FakeCall/blob/main/Screenshots/Screenshot_20260308-211426_Fake%20Call.png)
+![Screenshot 1](https://github.com/DDOneApps/FakeCall/blob/main/metadata/en-US/images/phoneScreenshots/1.png)
 _Main screen_
 
-![Screenshot 3](https://github.com/DDOneApps/FakeCall/blob/main/Screenshots/Screenshot_20260308-212114_Telefon.png)
-_Call interface_
+![Screenshot 3](https://github.com/DDOneApps/FakeCall/blob/main/metadata/en-US/images/phoneScreenshots/3.png)
+_settings screen_
+
+![Screenshot 4](https://github.com/DDOneApps/FakeCall/blob/main/metadata/en-US/images/phoneScreenshots/2.png)
+_Incoming call (example)_
 
 ## Tech Stack
 
@@ -155,7 +158,7 @@ FakeCall/
 
 We welcome contributions to FakeCall!
 
-
+If you want to help translating, do it [Here](https://crowdin.com/project/fakecall/invite?h=ad1b7ff358ecf52e9f823b4f7f691f1d2725120) via crowdin
 ## License
 
 This Project is licenced under GNU General Public License.
@@ -172,11 +175,15 @@ Read it [Here](https://raw.githubusercontent.com/DDOneApps/FakeCall/refs/heads/m
 
 ---
 
-<div align="center">
+
+**☕️ If you want to support me, you can do it via monero:**
+`42eQ1sZtR1USUcGRwc4hiTLNvL7q8U9XSCVVtuhRFKKREpevd4F1X3aN8X4UzkqNTy3n4BsfUooLvj1ydjpem5Ee9SRA2dZ`
+![9a569a26-b6f7-4425-84b6-0584a914ae54](https://github.com/user-attachments/assets/10f6a5b6-bf4c-43c1-8929-21e7cc3951e2)
+
 
 **⭐ Star this repo if you find it helpful!**
 
 Made with ❤️(and AI 🤖)
 
-</div>
+
 

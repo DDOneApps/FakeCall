@@ -1,0 +1,5 @@
+<ul>
+<li> added contact support with favourites feature.</li>
+<li> Improved IVR description</li>
+<li> added "MP3-Player" IVR mode</li>
+</ul>
