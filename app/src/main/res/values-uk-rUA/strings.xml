@@ -368,7 +368,7 @@
     <string name="alarm_empty_title">No alarms yet</string>
     <string name="alarm_empty_subtitle">Create your first alarm-style fake call.</string>
     <string name="alarm_create_title">Create alarm</string>
-    <string name="alarm_create_subtitle">Compact setup with repeat, voice, and snooze</string>
+    <string name="alarm_create_subtitle">Setup for your new alarm</string>
     <string name="alarm_edit_title">Edit alarm</string>
     <string name="alarm_edit_subtitle">Fine-tune schedule, voice, and snooze behavior</string>
     <string name="alarm_delete_title">Delete alarm?</string>
