@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">FakeCall</string>
+    <string name="app_name">Fake Call</string>
     <!-- Onboarding -->
     <string name="onboarding_title">Willkommen bei FakeCall</string>
     <string name="onboarding_subtitle">Ein hochwertiges Fake-Call-Erlebnis mit ausdrucksstarken Animationen und sofortiger Planung.</string>
@@ -359,4 +359,57 @@
     <string name="tts_mp3_ivr_root_folder">Du bist bereits im Hauptordner.</string>
     <string name="tts_mp3_ivr_invalid_selection">Ungültige Auswahl.</string>
     <string name="tts_mp3_ivr_audio_failed">Diese Audiodatei konnte nicht abgespielt werden.</string>
+    <!-- Alarm mode -->
+    <string name="nav_mode_call">Anruf</string>
+    <string name="nav_mode_alarm">Wecker</string>
+    <string name="alarm_mode_title">Wecker</string>
+    <string name="alarm_mode_subtitle">Anrufbasierte Wecker und Reminder</string>
+    <string name="alarm_add_new">Neuer Wecker</string>
+    <string name="alarm_empty_title">Noch keine Wecker</string>
+    <string name="alarm_empty_subtitle">Erstelle deinen ersten Wecker-FakeCall.</string>
+    <string name="alarm_create_title">Wecker erstellen</string>
+    <string name="alarm_create_subtitle">Setup für deinen neuen Wecker</string>
+    <string name="alarm_edit_title">Wecker bearbeiten</string>
+    <string name="alarm_edit_subtitle">Planung, Stimme und Snooze-Verhalten anpassen</string>
+    <string name="alarm_delete_title">Wecker löschen?</string>
+    <string name="alarm_delete_message">Wecker um %1$s löschen? Diese Aktion kann nicht rückgängig gemacht werden.</string>
+    <string name="alarm_section_caller">Anrufername / -nummer</string>
+    <string name="alarm_section_schedule">Zeitplan</string>
+    <string name="alarm_section_message">Nachricht</string>
+    <string name="alarm_section_snooze">Snooze</string>
+    <string name="alarm_section_speaker">Standard-Tonausgabe</string>
+    <string name="alarm_repeat_label">Tage</string>
+    <string name="alarm_repeat_once">einmal</string>
+    <string name="alarm_exact_time_only">Exakte Uhrzeit</string>
+    <string name="alarm_pick_time">Weckzeit wählen</string>
+    <string name="alarm_message_mode_tts">App-Stimme (TTS)</string>
+    <string name="alarm_message_mode_custom">Eigene Audiodatei</string>
+    <string name="alarm_tts_message_label">TTS-Nachricht</string>
+    <string name="alarm_tts_repeat_title">Nachricht wiederholen</string>
+    <string name="alarm_tts_repeat_subtitle">Die Nachricht wiederholen, bis der Anruf beendet wird.</string>
+    <string name="alarm_tts_default_message">Hey, dies ist deine Erinnerung.</string>
+    <string name="alarm_tts_default_message_with_name">%1$s ruft gerade an.</string>
+    <string name="alarm_custom_audio_none">Kein custom Audio ausgewählt</string>
+    <string name="alarm_select_audio">Audiodatei auswählen</string>
+    <string name="alarm_record_audio">Audio aufnehmen</string>
+    <string name="alarm_snooze_enable">Snooze erlauben</string>
+    <string name="alarm_snooze_hint">Snooze durch Ablehnen des Anrufs oder drücken der 1 auf der Wählscheibe aktivieren.</string>
+    <string name="alarm_snooze_minutes">%1$d min</string>
+    <string name="alarm_speaker_earpiece">Earpiece (Hörer)</string>
+    <string name="alarm_speaker_speaker">Lautsprecher</string>
+    <string name="action_save_call">Anruf speichern</string>
+    <string name="action_delete">löschen</string>
+    <string name="cd_edit_alarm">Wecker bearbeiten</string>
+    <string name="cd_delete_alarm">Wecker löschen</string>
+    <string name="status_alarm_saved_for">Wecker für %1$s (%2$s) gespeichert.</string>
+    <string name="status_alarm_updated_for">Wecker für %1$s (%2$s) gespeichert.</string>
+    <string name="status_alarm_deleted">Wecker gelöscht</string>
+    <string name="status_alarm_schedule_failed">Konnte diesen Wecker nicht planen.</string>
+    <string name="weekday_mon">Mo</string>
+    <string name="weekday_tue">Di</string>
+    <string name="weekday_wed">Mi</string>
+    <string name="weekday_thu">Do</string>
+    <string name="weekday_fri">Fr</string>
+    <string name="weekday_sat">Sa</string>
+    <string name="weekday_sun">So</string>
 </resources>
