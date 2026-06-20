@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">Fake Call</string>
     <!-- Onboarding -->
-    <string name="onboarding_title">Welcome to FakeCall</string>
+    <string name="onboarding_title">Bienvenido a FakeCall</string>
     <string name="onboarding_subtitle">A premium fake call experience with expressive motion and instant scheduling.</string>
     <string name="onboarding_features_title">Main features</string>
     <string name="feature_realistic_calls_title">Realistic incoming calls</string>
