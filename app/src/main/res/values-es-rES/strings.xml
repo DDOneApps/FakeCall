@@ -128,7 +128,7 @@
     <string name="settings_quick_triggers_audio_note">Los disparadores rápidos reutilizan el audio configurado en la sección de audio de arriba, incluyendo el archivo seleccionado o el comportamiento de reproducción predeterminado.</string>
     <string name="settings_quick_triggers_audio_note_with_preset">Los disparadores rápidos usan la sección de Audio por defecto. Puedes habilitar un archivo de audio personalizado por el preajuste guardado a continuación.</string>
     <string name="settings_open_accessibility_settings">Abrir Ajustes de Accesibilidad</string>
-    <string name="settings_accessibility_note">Activa el servicio de accesibilidad de FakeCal para utilizar el botón de accesibilidad o el acceso directo para una programación de llamada instantánea.</string>
+    <string name="settings_accessibility_note">Activa el servicio de accesibilidad de FakeCall para utilizar el botón de accesibilidad o el acceso directo para una programación de llamada instantánea.</string>
     <string name="settings_preset_name_label">Nombre del preajuste (opcional)</string>
     <string name="settings_save_preset_button">Guardar Valores Predeterminados Actuales como Preajuste (%1$d/%2$d)</string>
     <string name="settings_no_quick_trigger_presets">No hay preajustes de disparo rápido todavía. Guarda uno para exponerlo como acción de la aplicación de inicio y Ajuste Rápido.</string>
