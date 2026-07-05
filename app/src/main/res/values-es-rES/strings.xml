@@ -128,7 +128,7 @@
     <string name="settings_quick_triggers_audio_note">Los disparadores rápidos reutilizan el audio configurado en la sección de audio de arriba, incluyendo el archivo seleccionado o el comportamiento de reproducción predeterminado.</string>
     <string name="settings_quick_triggers_audio_note_with_preset">Los disparadores rápidos usan la sección de Audio por defecto. Puedes habilitar un archivo de audio personalizado por el preajuste guardado a continuación.</string>
     <string name="settings_open_accessibility_settings">Abrir Ajustes de Accesibilidad</string>
-    <string name="settings_accessibility_note">Activa el servicio de accesibilidad de FakeCal para utilizar el botón de accesibilidad o el acceso directo para una programación de llamada instantánea.</string>
+    <string name="settings_accessibility_note">Activa el servicio de accesibilidad de FakeCall para utilizar el botón de accesibilidad o el acceso directo para una programación de llamada instantánea.</string>
     <string name="settings_preset_name_label">Nombre del preajuste (opcional)</string>
     <string name="settings_save_preset_button">Guardar Valores Predeterminados Actuales como Preajuste (%1$d/%2$d)</string>
     <string name="settings_no_quick_trigger_presets">No hay preajustes de disparo rápido todavía. Guarda uno para exponerlo como acción de la aplicación de inicio y Ajuste Rápido.</string>
@@ -141,7 +141,7 @@
     <string name="settings_default_preset_selected">Predeterminado de accesibilidad</string>
     <string name="settings_apply_to_defaults">Aplicar a Predeterminados</string>
     <string name="settings_presets_note">Presets appear as app actions on launcher long-press and as Quick Settings tiles (Preset 1-5).</string>
-    <string name="settings_automation_action_note">Acción: `com.upnp.fakeCall.TRIGGER` with extras `caller_name`, `caller_number`, and `delay`.</string>
+    <string name="settings_automation_action_note">Acción: `com.upnp.fakeCall.TRIGGER` con extras `caller_name`, `caller_number`, y `delay`.</string>
     <string name="widget_contact_picker_title">Contacto Favorito</string>
     <string name="widget_timing_picker_title">Tiempo</string>
     <string name="widget_schedule_call">Programar Llamada</string>
