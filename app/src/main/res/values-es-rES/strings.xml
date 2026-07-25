@@ -141,7 +141,7 @@
     <string name="settings_default_preset_selected">Predeterminado de accesibilidad</string>
     <string name="settings_apply_to_defaults">Aplicar a Predeterminados</string>
     <string name="settings_presets_note">Presets appear as app actions on launcher long-press and as Quick Settings tiles (Preset 1-5).</string>
-    <string name="settings_automation_action_note">Acción: `com.upnp.fakeCall.TRIGGER` with extras `caller_name`, `caller_number`, and `delay`.</string>
+    <string name="settings_automation_action_note">Acción: `com.upnp.fakeCall.TRIGGER` con extras `caller_name`, `caller_number`, y `delay`.</string>
     <string name="widget_contact_picker_title">Contacto Favorito</string>
     <string name="widget_timing_picker_title">Tiempo</string>
     <string name="widget_schedule_call">Programar Llamada</string>
