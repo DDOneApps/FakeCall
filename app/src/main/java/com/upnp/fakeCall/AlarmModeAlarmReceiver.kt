@@ -3,93 +3,119 @@ package com.upnp.fakeCall
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.os.PowerManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class AlarmModeAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         if (intent == null) return
-        val alarmId = intent.getLongExtra(EXTRA_ALARM_ID, 0L)
-        if (alarmId == 0L) return
+        val pendingResult = goAsync()
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-        val callerNumber = intent.getStringExtra(EXTRA_CALLER_NUMBER).orEmpty().trim()
-        if (callerNumber.isBlank()) return
-        val callerName = intent.getStringExtra(EXTRA_CALLER_NAME).orEmpty()
-        val providerName = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .getString(KEY_PROVIDER_NAME, context.getString(R.string.default_provider_name))
-            .orEmpty()
+        scope.launch {
+            val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+            val wakeLock = powerManager.newWakeLock(
+                PowerManager.PARTIAL_WAKE_LOCK,
+                WAKE_LOCK_TAG
+            ).apply { acquire(WAKE_LOCK_TIMEOUT_MS) }
 
-        val messageMode = runCatching {
-            AlarmMessageMode.valueOf(
-                intent.getStringExtra(EXTRA_MESSAGE_MODE).orEmpty().ifBlank { AlarmMessageMode.APP_VOICE_TTS.name }
-            )
-        }.getOrDefault(AlarmMessageMode.APP_VOICE_TTS)
-        val ttsMessage = intent.getStringExtra(EXTRA_TTS_MESSAGE).orEmpty()
-        val repeatTtsMessage = intent.getBooleanExtra(EXTRA_REPEAT_TTS_MESSAGE, false)
-        val customAudioUri = intent.getStringExtra(EXTRA_CUSTOM_AUDIO_URI).orEmpty()
-        val customAudioName = intent.getStringExtra(EXTRA_CUSTOM_AUDIO_NAME).orEmpty()
-        val snoozeEnabled = intent.getBooleanExtra(EXTRA_SNOOZE_ENABLED, false)
-        val snoozeMinutes = intent.getIntExtra(EXTRA_SNOOZE_MINUTES, 5).coerceIn(1, 30)
-        val speakerDefault = runCatching {
-            AlarmSpeakerDefault.valueOf(
-                intent.getStringExtra(EXTRA_SPEAKER_DEFAULT).orEmpty().ifBlank { AlarmSpeakerDefault.EARPIECE.name }
-            )
-        }.getOrDefault(AlarmSpeakerDefault.EARPIECE)
+            try {
+                val alarmId = intent.getLongExtra(EXTRA_ALARM_ID, 0L)
+                if (alarmId == 0L) return@launch
 
-        applyRuntimeOverrides(
-            context = context,
-            messageMode = messageMode,
-            ttsMessage = ttsMessage,
-            repeatTtsMessage = repeatTtsMessage,
-            customAudioUri = customAudioUri,
-            customAudioName = customAudioName,
-            speakerDefault = speakerDefault,
-            snoozeEnabled = snoozeEnabled,
-            snoozeMinutes = snoozeMinutes,
-            alarmId = alarmId,
-            callerName = callerName,
-            callerNumber = callerNumber,
-            providerName = providerName
-        )
+                val callerNumber = intent.getStringExtra(EXTRA_CALLER_NUMBER).orEmpty().trim()
+                if (callerNumber.isBlank()) return@launch
+                val callerName = intent.getStringExtra(EXTRA_CALLER_NAME).orEmpty()
+                val providerName = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                    .getString(KEY_PROVIDER_NAME, context.getString(R.string.default_provider_name))
+                    .orEmpty()
 
-        val telecomHelper = TelecomHelper(context)
-        telecomHelper.registerOrUpdatePhoneAccount(providerName.ifBlank { context.getString(R.string.default_provider_name) })
-        if (telecomHelper.isAccountEnabled()) {
-            telecomHelper.triggerIncomingCall(
-                callerName = callerName,
-                callerNumber = callerNumber,
-                source = IncomingCallSource.ALARM
-            )
-        }
+                val messageMode = runCatching {
+                    AlarmMessageMode.valueOf(
+                        intent.getStringExtra(EXTRA_MESSAGE_MODE).orEmpty().ifBlank { AlarmMessageMode.APP_VOICE_TTS.name }
+                    )
+                }.getOrDefault(AlarmMessageMode.APP_VOICE_TTS)
+                val ttsMessage = intent.getStringExtra(EXTRA_TTS_MESSAGE).orEmpty()
+                val repeatTtsMessage = intent.getBooleanExtra(EXTRA_REPEAT_TTS_MESSAGE, false)
+                val customAudioUri = intent.getStringExtra(EXTRA_CUSTOM_AUDIO_URI).orEmpty()
+                val customAudioName = intent.getStringExtra(EXTRA_CUSTOM_AUDIO_NAME).orEmpty()
+                val snoozeEnabled = intent.getBooleanExtra(EXTRA_SNOOZE_ENABLED, false)
+                val snoozeMinutes = intent.getIntExtra(EXTRA_SNOOZE_MINUTES, 5).coerceIn(1, 30)
+                val speakerDefault = runCatching {
+                    AlarmSpeakerDefault.valueOf(
+                        intent.getStringExtra(EXTRA_SPEAKER_DEFAULT).orEmpty().ifBlank { AlarmSpeakerDefault.EARPIECE.name }
+                    )
+                }.getOrDefault(AlarmSpeakerDefault.EARPIECE)
 
-        val repeatDays = (intent.getIntArrayExtra(EXTRA_REPEAT_DAYS) ?: intArrayOf())
-            .toSet()
-            .filter { day -> day in 1..7 }
-            .toSet()
-        if (repeatDays.isEmpty()) {
-            AlarmModeRepository.disable(context, alarmId)
-            AlarmModeRepository.updateNextTrigger(context, alarmId, 0L)
-            AlarmModeScheduler.cancel(context, alarmId)
-            return
-        }
+                applyRuntimeOverrides(
+                    context = context,
+                    messageMode = messageMode,
+                    ttsMessage = ttsMessage,
+                    repeatTtsMessage = repeatTtsMessage,
+                    customAudioUri = customAudioUri,
+                    customAudioName = customAudioName,
+                    speakerDefault = speakerDefault,
+                    snoozeEnabled = snoozeEnabled,
+                    snoozeMinutes = snoozeMinutes,
+                    alarmId = alarmId,
+                    callerName = callerName,
+                    callerNumber = callerNumber,
+                    providerName = providerName
+                )
 
-        val alarm = AlarmModeRepository.find(context, alarmId)?.copy(
-            callerName = callerName,
-            callerNumber = callerNumber,
-            hour = intent.getIntExtra(EXTRA_HOUR, 8).coerceIn(0, 23),
-            minute = intent.getIntExtra(EXTRA_MINUTE, 0).coerceIn(0, 59),
-            repeatDays = repeatDays,
-            messageMode = messageMode,
-            ttsMessage = ttsMessage,
-            repeatTtsMessage = repeatTtsMessage,
-            customAudioUri = customAudioUri,
-            customAudioName = customAudioName,
-            snoozeEnabled = snoozeEnabled,
-            snoozeMinutes = snoozeMinutes,
-            speakerDefault = speakerDefault,
-            enabled = true
-        )
-        if (alarm != null) {
-            val next = AlarmModeScheduler.schedule(context, alarm)
-            AlarmModeRepository.upsert(context, alarm.copy(nextTriggerAtMillis = next))
+                val telecomHelper = TelecomHelper(context)
+                telecomHelper.registerOrUpdatePhoneAccount(providerName.ifBlank { context.getString(R.string.default_provider_name) })
+                if (telecomHelper.isAccountEnabled()) {
+                    telecomHelper.triggerIncomingCall(
+                        callerName = callerName,
+                        callerNumber = callerNumber,
+                        source = IncomingCallSource.ALARM
+                    )
+                }
+
+                val repeatDays = (intent.getIntArrayExtra(EXTRA_REPEAT_DAYS) ?: intArrayOf())
+                    .toSet()
+                    .filter { day -> day in 1..7 }
+                    .toSet()
+                if (repeatDays.isEmpty()) {
+                    AlarmModeRepository.disable(context, alarmId)
+                    AlarmModeRepository.updateNextTrigger(context, alarmId, 0L)
+                    AlarmModeScheduler.cancel(context, alarmId)
+                    return@launch
+                }
+
+                val alarm = AlarmModeRepository.find(context, alarmId)?.copy(
+                    callerName = callerName,
+                    callerNumber = callerNumber,
+                    hour = intent.getIntExtra(EXTRA_HOUR, 8).coerceIn(0, 23),
+                    minute = intent.getIntExtra(EXTRA_MINUTE, 0).coerceIn(0, 59),
+                    repeatDays = repeatDays,
+                    messageMode = messageMode,
+                    ttsMessage = ttsMessage,
+                    repeatTtsMessage = repeatTtsMessage,
+                    customAudioUri = customAudioUri,
+                    customAudioName = customAudioName,
+                    snoozeEnabled = snoozeEnabled,
+                    snoozeMinutes = snoozeMinutes,
+                    speakerDefault = speakerDefault,
+                    enabled = true
+                )
+                if (alarm != null) {
+                    val next = AlarmModeScheduler.schedule(context, alarm)
+                    AlarmModeRepository.upsert(context, alarm.copy(nextTriggerAtMillis = next))
+                }
+            } finally {
+                if (wakeLock.isHeld) {
+                    runCatching { wakeLock.release() }
+                }
+                pendingResult.finish()
+                scope.cancel()
+            }
         }
     }
 
@@ -188,5 +214,7 @@ class AlarmModeAlarmReceiver : BroadcastReceiver() {
         private const val KEY_RUNTIME_SNOOZE_PROVIDER_NAME = "runtime_snooze_provider_name"
         private const val RUNTIME_MESSAGE_MODE_CUSTOM = "custom_audio"
         private const val RUNTIME_MESSAGE_MODE_TTS = "tts"
+        private const val WAKE_LOCK_TAG = "fakecall:alarm-mode-receiver"
+        private const val WAKE_LOCK_TIMEOUT_MS = 30_000L
     }
 }

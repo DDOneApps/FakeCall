@@ -10,6 +10,7 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -52,17 +53,29 @@ class FakeCallSchedulerService : Service() {
 
                 scheduleJob?.cancel()
                 scheduleJob = serviceScope.launch {
-                    val telecomHelper = TelecomHelper(applicationContext)
-                    telecomHelper.registerOrUpdatePhoneAccount(providerName.ifBlank { getString(R.string.default_provider_name) })
-                    delay(delaySeconds * 1_000L)
-                    if (telecomHelper.isAccountEnabled()) {
-                        telecomHelper.triggerIncomingCall(callerName, callerNumber)
+                    val powerManager = applicationContext.getSystemService(Context.POWER_SERVICE) as PowerManager
+                    val wakeLock = powerManager.newWakeLock(
+                        PowerManager.PARTIAL_WAKE_LOCK,
+                        WAKE_LOCK_TAG
+                    ).apply { acquire((delaySeconds + 5) * 1_000L) }
+
+                    try {
+                        val telecomHelper = TelecomHelper(applicationContext)
+                        telecomHelper.registerOrUpdatePhoneAccount(providerName.ifBlank { getString(R.string.default_provider_name) })
+                        delay(delaySeconds * 1_000L)
+                        if (telecomHelper.isAccountEnabled()) {
+                            telecomHelper.triggerIncomingCall(callerName, callerNumber)
+                        }
+                    } finally {
+                        if (wakeLock.isHeld) {
+                            runCatching { wakeLock.release() }
+                        }
+                        stopForeground(STOP_FOREGROUND_REMOVE)
+                        stopSelf(startId)
                     }
-                    stopForeground(STOP_FOREGROUND_REMOVE)
-                    stopSelf(startId)
                 }
 
-                return START_NOT_STICKY
+                return START_STICKY
             }
 
             else -> {
@@ -128,6 +141,7 @@ class FakeCallSchedulerService : Service() {
     companion object {
         private const val CHANNEL_ID = "fake_call_scheduler"
         private const val NOTIFICATION_ID = 101
+        private const val WAKE_LOCK_TAG = "fakecall:scheduler-service"
 
         private const val ACTION_SCHEDULE_CALL = "com.upnp.fakeCall.action.SCHEDULE"
         private const val ACTION_CANCEL_CALL = "com.upnp.fakeCall.action.CANCEL"
