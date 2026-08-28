@@ -13,12 +13,15 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -72,6 +75,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
@@ -79,6 +83,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.upnp.fakeCall.AnswerAudioMode
@@ -130,13 +135,13 @@ fun DashboardScreen(
 
     val blurRadius by animateFloatAsState(
         targetValue = if (showCustomSheet) 16f else 0f,
-        animationSpec = expressiveSpring(),
+        animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
         label = "backgroundBlur"
     )
 
     val backgroundScale by animateFloatAsState(
         targetValue = if (showCustomSheet) 0.98f else 1f,
-        animationSpec = expressiveSpring(),
+        animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
         label = "backgroundScale"
     )
 
@@ -791,7 +796,7 @@ private fun CustomCallSheet(
 
     val progress by animateFloatAsState(
         targetValue = if (visible) 1f else 0f,
-        animationSpec = expressiveSpring(),
+        animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
         label = "sheetProgress"
     )
 
@@ -802,124 +807,128 @@ private fun CustomCallSheet(
         val scale = lerp(0.95f, 1f, progress) * lerp(1f, 0.92f, backProgress)
         val alpha = lerp(0.7f, 1f, progress) * lerp(1f, 0.6f, backProgress)
 
-        Box(modifier = Modifier.fillMaxSize()) {
-            AnimatedVisibility(
-                visible = visible,
-                enter = fadeIn(animationSpec = expressiveSpring()),
-                exit = fadeOut(animationSpec = expressiveSpring())
-            ) {
+        Dialog(
+            onDismissRequest = onDismiss,
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false,
+                decorFitsSystemWindows = false
+            )
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(MaterialTheme.colorScheme.scrim.copy(alpha = scrimAlpha))
-                        .padding(bottom = 1.dp)
+                        .pointerInput(onDismiss) {
+                            detectTapGestures(onTap = { onDismiss() })
+                        }
                 )
-            }
 
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(horizontal = 16.dp, vertical = 16.dp)
-                    .navigationBarsPadding()
-                    .offset(y = offsetY)
-                    .graphicsLayer {
-                        scaleX = scale
-                        scaleY = scale
-                        this.alpha = alpha
-                    },
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                tonalElevation = 6.dp,
-                shape = RoundedCornerShape(cornerRadius)
-            ) {
-                Column(
+                Surface(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                        .align(Alignment.BottomCenter)
+                        .padding(horizontal = 16.dp, vertical = 16.dp)
+                        .navigationBarsPadding()
+                        .offset(y = offsetY)
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                            this.alpha = alpha
+                        },
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    tonalElevation = 6.dp,
+                    shape = RoundedCornerShape(cornerRadius)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        AnimatedIcon(
-                            imageVector = Icons.Outlined.AccessTime,
-                            contentDescription = null,
-                            shape = CircleShape,
-                            backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                        Text(
-                            text = stringResource(R.string.custom_call_sheet_title),
-                            style = MaterialTheme.typography.displaySmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        androidx.compose.material3.FilterChip(
-                            selected = scheduleKind == ScheduleKind.CUSTOM_COUNTDOWN,
-                            onClick = {
-                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                onScheduleKindChange(ScheduleKind.CUSTOM_COUNTDOWN)
-                            },
-                            label = { Text(stringResource(R.string.filter_countdown)) },
-                            shape = RoundedCornerShape(999.dp),
-                            modifier = Modifier.bounceClick()
-                        )
-                        androidx.compose.material3.FilterChip(
-                            selected = scheduleKind == ScheduleKind.CUSTOM_EXACT,
-                            onClick = {
-                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                onScheduleKindChange(ScheduleKind.CUSTOM_EXACT)
-                            },
-                            label = { Text(stringResource(R.string.filter_exact_time)) },
-                            shape = RoundedCornerShape(999.dp),
-                            modifier = Modifier.bounceClick()
-                        )
-                    }
-
-                    if (scheduleKind == ScheduleKind.CUSTOM_COUNTDOWN) {
-                        CountdownPicker(
-                            minutes = countdownMinutes,
-                            seconds = countdownSeconds,
-                            onChange = onCountdownChange
-                        )
-                    } else {
-                        val is24Hour = DateFormat.is24HourFormat(context)
-                        ExactTimePicker(
-                            hour = exactHour,
-                            minute = exactMinute,
-                            is24Hour = is24Hour,
-                            onChange = onExactTimeChange
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Button(
-                            onClick = onSavePreset,
-                            modifier = Modifier.weight(1f).bounceClick()
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Text(stringResource(R.string.action_save_as_preset))
+                            AnimatedIcon(
+                                imageVector = Icons.Outlined.AccessTime,
+                                contentDescription = null,
+                                shape = CircleShape,
+                                backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                            Text(
+                                text = stringResource(R.string.custom_call_sheet_title),
+                                style = MaterialTheme.typography.displaySmall,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
-                        Button(
-                            onClick = onDismiss,
-                            modifier = Modifier.weight(1f).bounceClick()
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Text(stringResource(R.string.action_cancel))
+                            androidx.compose.material3.FilterChip(
+                                selected = scheduleKind == ScheduleKind.CUSTOM_COUNTDOWN,
+                                onClick = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onScheduleKindChange(ScheduleKind.CUSTOM_COUNTDOWN)
+                                },
+                                label = { Text(stringResource(R.string.filter_countdown)) },
+                                shape = RoundedCornerShape(999.dp),
+                                modifier = Modifier.bounceClick()
+                            )
+                            androidx.compose.material3.FilterChip(
+                                selected = scheduleKind == ScheduleKind.CUSTOM_EXACT,
+                                onClick = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onScheduleKindChange(ScheduleKind.CUSTOM_EXACT)
+                                },
+                                label = { Text(stringResource(R.string.filter_exact_time)) },
+                                shape = RoundedCornerShape(999.dp),
+                                modifier = Modifier.bounceClick()
+                            )
                         }
-                        Button(
-                            onClick = {
-                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onApply()
-                            },
-                            modifier = Modifier.weight(1f).bounceClick()
+
+                        if (scheduleKind == ScheduleKind.CUSTOM_COUNTDOWN) {
+                            CountdownPicker(
+                                minutes = countdownMinutes,
+                                seconds = countdownSeconds,
+                                onChange = onCountdownChange
+                            )
+                        } else {
+                            val is24Hour = DateFormat.is24HourFormat(context)
+                            ExactTimePicker(
+                                hour = exactHour,
+                                minute = exactMinute,
+                                is24Hour = is24Hour,
+                                onChange = onExactTimeChange
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Text(stringResource(R.string.action_use_this_time))
+                            Button(
+                                onClick = onSavePreset,
+                                modifier = Modifier.weight(1f).bounceClick()
+                            ) {
+                                Text(stringResource(R.string.action_save_as_preset))
+                            }
+                            Button(
+                                onClick = onDismiss,
+                                modifier = Modifier.weight(1f).bounceClick()
+                            ) {
+                                Text(stringResource(R.string.action_cancel))
+                            }
+                            Button(
+                                onClick = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onApply()
+                                },
+                                modifier = Modifier.weight(1f).bounceClick()
+                            ) {
+                                Text(stringResource(R.string.action_use_this_time))
+                            }
                         }
                     }
                 }
