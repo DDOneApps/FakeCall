@@ -689,7 +689,7 @@ class FakeConnection(
                 put(MediaStore.MediaColumns.MIME_TYPE, "audio/mp4")
                 put(
                     MediaStore.MediaColumns.RELATIVE_PATH,
-                    Environment.DIRECTORY_DOWNLOADS + File.separator + "FakeCall"
+                    Environment.DIRECTORY_DOWNLOADS + File.separator + "Phony"
                 )
             }
             val mediaStoreUri = runCatching {

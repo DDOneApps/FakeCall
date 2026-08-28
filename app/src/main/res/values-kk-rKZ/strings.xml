@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Fake Call</string>
+    <string name="app_name">Phony</string>
     <!-- Onboarding -->
-    <string name="onboarding_title">FakeCall-ге қош келдіңіз</string>
+    <string name="onboarding_title">Phony-ге қош келдіңіз</string>
     <string name="onboarding_subtitle">Экспрессивті анимациясы және жедел жоспарлауы бар жоғары сапалы жалған қоңырау тәжірибесі.</string>
     <string name="onboarding_features_title">Негізгі мүмкіндіктер</string>
     <string name="feature_realistic_calls_title">Шынайы кіріс қоңыраулар</string>
@@ -15,7 +15,7 @@
     <string name="permission_mic_subtitle">Қоңырауларды симуляциялау және дыбысты жазу үшін қажет.</string>
     <string name="permission_mic_action">Рұқсаттарды беру</string>
     <string name="permission_phone_title">Телефон қоңырауларын жасау және басқару</string>
-    <string name="permission_phone_subtitle">Жүйе Қоңырау аккаунттарында FakeCall-ді қосыңыз.</string>
+    <string name="permission_phone_subtitle">Жүйе Қоңырау аккаунттарында Phony-ді қосыңыз.</string>
     <string name="permission_phone_action">Қоңырау аккаунттарын ашу</string>
     <string name="permission_alarms_title">Дәл дабылдар және еске салулар</string>
     <string name="permission_alarms_subtitle">Android 12+ нұсқасында нақты уақытты қоңыраулар үшін қажет.</string>
@@ -24,11 +24,11 @@
     <string name="permission_battery_subtitle">Recommended on aggressive ROMs so calls still ring with screen off.</string>
     <string name="permission_battery_system_action">Disable system battery optimization</string>
     <string name="permission_battery_oem_action">Open ROM background/autostart settings</string>
-    <string name="permission_battery_rom_hint_hyperos">HyperOS/Xiaomi: allow Autostart and set Battery saver to No restrictions for FakeCall.</string>
-    <string name="permission_battery_rom_hint_oxygenos">OxygenOS/OnePlus: allow Auto launch + Background activity and remove FakeCall from app battery optimization.</string>
-    <string name="permission_battery_rom_hint_coloros">ColorOS/realme UI: allow Auto launch/Startup and disable background freezing or deep optimization for FakeCall.</string>
-    <string name="permission_battery_rom_hint_oneui">Samsung One UI: set FakeCall to Unrestricted battery and allow background activity.</string>
-    <string name="permission_battery_rom_hint_generic">If calls fail with screen off, set FakeCall battery mode to Unrestricted and allow background activity/autostart.</string>
+    <string name="permission_battery_rom_hint_hyperos">HyperOS/Xiaomi: allow Autostart and set Battery saver to No restrictions for Phony.</string>
+    <string name="permission_battery_rom_hint_oxygenos">OxygenOS/OnePlus: allow Auto launch + Background activity and remove Phony from app battery optimization.</string>
+    <string name="permission_battery_rom_hint_coloros">ColorOS/realme UI: allow Auto launch/Startup and disable background freezing or deep optimization for Phony.</string>
+    <string name="permission_battery_rom_hint_oneui">Samsung One UI: set Phony to Unrestricted battery and allow background activity.</string>
+    <string name="permission_battery_rom_hint_generic">If calls fail with screen off, set Phony battery mode to Unrestricted and allow background activity/autostart.</string>
     <string name="permission_completed">Орындалды</string>
     <string name="onboarding_calling_accounts_help_title">Қоңырау аккаунттары параметрлерін аша алмайсыз ба?</string>
     <string name="onboarding_calling_accounts_help_subtitle">Кейбір OnePlus/Oppo/Realme/Samsung құрылғыларында экран жасырылған. ADB арқылы тікелей ашуға болады:</string>
@@ -36,7 +36,7 @@
     <string name="onboarding_finish_setup">Баптауды аяқтау</string>
     <string name="onboarding_finish_setup_needs_permissions">Баптауды аяқтау (рұқсаттар қажет)</string>
     <!-- Dashboard -->
-    <string name="app_title">FakeCall</string>
+    <string name="app_title">Phony</string>
     <string name="app_subtitle">Мінсіз шығу жолыңызды жоспарлаңыз</string>
     <string name="cd_open_settings">Параметрлерді ашу</string>
     <string name="action_cancel_call">Қоңырауды болдырмау</string>
@@ -115,7 +115,7 @@
     <string name="settings_recording_folder_title">Жазба қалтасы</string>
     <string name="settings_recording_folder_subtitle">Сақтау орны: %s</string>
     <string name="settings_reset_recording_folder_title">Жазба қалтасын қалпына келтіру</string>
-    <string name="settings_reset_recording_folder_subtitle">Downloads/FakeCall пайдалану</string>
+    <string name="settings_reset_recording_folder_subtitle">Downloads/Phony пайдалану</string>
     <string name="settings_category_automation">Автоматтандыру</string>
     <string name="settings_automation_title">Автоматтандыру және жылдам іске қосу әдепкілері</string>
     <string name="settings_automation_subtitle">Сыртқы интенттер және арнайы мүмкіндіктер таңбашасы пайдаланады.</string>
@@ -128,7 +128,7 @@
     <string name="settings_quick_triggers_audio_note">Жылдам іске қосулар жоғарыдағы Аудио бөліміндегі аудио конфигурациясын қайта пайдаланады, соның ішінде таңдалған файлыңызды немесе әдепкі ойнату мінез-құлқын.</string>
     <string name="settings_quick_triggers_audio_note_with_preset">Quick triggers use the Audio section by default. You can enable a custom audio file per saved preset below.</string>
     <string name="settings_open_accessibility_settings">Арнайы мүмкіндіктер параметрлерін ашу</string>
-    <string name="settings_accessibility_note">Жедел жоспарлау үшін жүйелік арнайы мүмкіндіктер түймесін немесе таңбашасын пайдалану үшін FakeCall арнайы мүмкіндіктер қызметін сонда қосыңыз.</string>
+    <string name="settings_accessibility_note">Жедел жоспарлау үшін жүйелік арнайы мүмкіндіктер түймесін немесе таңбашасын пайдалану үшін Phony арнайы мүмкіндіктер қызметін сонда қосыңыз.</string>
     <string name="settings_preset_name_label">Алдын ала орнату атауы (міндетті емес)</string>
     <string name="settings_save_preset_button">Ағымдағы әдепкілерді алдын ала орнату ретінде сақтау (%1$d/%2$d)</string>
     <string name="settings_no_quick_trigger_presets">Жылдам іске қосу алдын ала орнатулары әлі жоқ. Іске қосқышты қолданба әрекеті және жылдам параметрлер тақтасы ретінде қосу үшін бірін сақтаңыз.</string>
@@ -145,8 +145,8 @@
     <string name="widget_contact_picker_title">Favorite Contact</string>
     <string name="widget_timing_picker_title">Timing</string>
     <string name="widget_schedule_call">Schedule Call</string>
-    <string name="widget_open_app">Open FakeCall</string>
-    <string name="widget_no_favorite_contacts">No starred contacts yet. Star contacts in FakeCall to use this widget.</string>
+    <string name="widget_open_app">Open Phony</string>
+    <string name="widget_no_favorite_contacts">No starred contacts yet. Star contacts in Phony to use this widget.</string>
     <string name="widget_no_favorite_contacts_short">No favorites</string>
     <string name="widget_star_contacts_hint">Mark contacts with a star in the app.</string>
     <string name="widget_call_cancelled">Scheduled call cancelled.</string>
@@ -254,7 +254,7 @@
     <string name="action_remove">Жою</string>
     <string name="action_apply">Қолдану</string>
     <string name="sim_provider_dialog_title">Use a SIM provider name?</string>
-    <string name="sim_provider_dialog_subtitle">Choose which stable SIM card name should be shown as the FakeCall provider.</string>
+    <string name="sim_provider_dialog_subtitle">Choose which stable SIM card name should be shown as the Phony provider.</string>
     <string name="sim_provider_no_sims">No stable SIM card name was found. Check phone permissions or enter a provider name manually.</string>
     <string name="sim_provider_slot_label">SIM slot %1$d</string>
     <string name="sim_provider_use_this">Use this provider</string>
@@ -280,11 +280,11 @@
     <string name="notification_unknown_caller">Белгісіз</string>
     <!-- Quick Trigger Tile -->
     <string name="tile_preset_label">Алдын ала орнату %d</string>
-    <string name="tile_service_preset_1">FakeCall алдын ала орнатуы 1</string>
-    <string name="tile_service_preset_2">FakeCall алдын ала орнатуы 2</string>
-    <string name="tile_service_preset_3">FakeCall алдын ала орнатуы 3</string>
-    <string name="tile_service_preset_4">FakeCall алдын ала орнатуы 4</string>
-    <string name="tile_service_preset_5">FakeCall алдын ала орнатуы 5</string>
+    <string name="tile_service_preset_1">Phony алдын ала орнатуы 1</string>
+    <string name="tile_service_preset_2">Phony алдын ала орнатуы 2</string>
+    <string name="tile_service_preset_3">Phony алдын ала орнатуы 3</string>
+    <string name="tile_service_preset_4">Phony алдын ала орнатуы 4</string>
+    <string name="tile_service_preset_5">Phony алдын ала орнатуы 5</string>
     <string name="tile_not_configured">Конфигурацияланбаған</string>
     <string name="toast_triggering_now">Жалған қоңырау қазір іске қосылуда\u2026</string>
     <string name="toast_scheduled_in">Жалған қоңырау %d секундтан кейін жоспарланды</string>
@@ -326,7 +326,7 @@
     <string name="status_mailbox_imported">Пошта жәшігі импортталды.</string>
     <string name="status_import_failed">Импорт сәтсіз аяқталды.</string>
     <string name="status_recording_folder_set">Жазба қалтасы орнатылды: %s</string>
-    <string name="status_recording_folder_reset">Жазба қалтасы Downloads/FakeCall-ге қалпына келтірілді.</string>
+    <string name="status_recording_folder_reset">Жазба қалтасы Downloads/Phony-ге қалпына келтірілді.</string>
     <string name="status_provider_saved">Провайдер сақталды. Оның Қоңырау аккаунттарында қосылғанын тексеріңіз.</string>
     <string name="status_provider_register_failed">Провайдерді тіркеу мүмкін болмады. Телефон рұқсаттарын тексеріп, қайталап көріңіз.</string>
     <string name="status_grant_permissions_scheduling">Жоспарлаудан бұрын телефон рұқсаттарын беріңіз.</string>

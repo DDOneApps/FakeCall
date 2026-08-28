@@ -122,7 +122,8 @@ import kotlinx.coroutines.launch
 fun SettingsScreen(
     viewModel: FakeCallViewModel,
     onBack: () -> Unit,
-    onRequestPermissions: () -> Unit
+    onRequestPermissions: () -> Unit,
+    onOpenSetup: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -370,6 +371,19 @@ fun SettingsScreen(
                                 stringResource(R.string.settings_provider_disabled)
                             },
                             onClick = { openCallingAccounts(context, viewModel) }
+                        )
+                    }
+
+                    item {
+                        PreferenceCategoryHeader(stringResource(R.string.settings_category_setup))
+                    }
+
+                    item {
+                        PreferenceCard(
+                            icon = Icons.Outlined.Refresh,
+                            title = stringResource(R.string.settings_restart_setup_title),
+                            subtitle = stringResource(R.string.settings_restart_setup_subtitle),
+                            onClick = onOpenSetup
                         )
                     }
 
@@ -1668,4 +1682,4 @@ private fun openUrl(context: Context, url: String) {
     }
 }
 
-private const val GITHUB_REPO_URL = "https://github.com/DDOneApps/FakeCall"
+private const val GITHUB_REPO_URL = "https://github.com/DDOneApps/Phony"

@@ -15,12 +15,12 @@ F-Droid documents this source-repository metadata layout as valid at `metadata/<
 - Package ID: `com.upnp.fakeCall`
 - Version name: `2.5`
 - Version code: `25`
-- Source repository: `https://github.com/DDOneApps/FakeCall`
+- Source repository: `https://github.com/DDOneApps/Phony`
 - License field for F-Droid: `GPL-3.0-only`
 - Suggested category: `Phone & SMS`
-- AutoName detected by fdroidserver: `Fake Call`
+- AutoName detected by fdroidserver: `Phony`
 - Gradle project path: repository root with Android module `app`
-- Upstream binary URL: `https://github.com/DDOneApps/FakeCall/releases/download/v%v/app-release-full.apk`
+- Upstream binary URL: `https://github.com/DDOneApps/Phony/releases/download/v%v/app-release-full.apk`
 - APK signing certificate SHA-256: `bfa2a6906d3c2f650717c4e0c2f5ffc47c60fa7202bc3a2c7429f8a9e59bde80`
 
 If you later add explicit source-file license headers saying "GPL-3.0-or-later", update the F-Droid license field accordingly.
@@ -36,7 +36,7 @@ If you later add explicit source-file license headers saying "GPL-3.0-or-later",
 7. Create and push a release tag that matches the metadata template:
 
 ```bash
-git tag -a v2.5 -m "FakeCall 2.5"
+git tag -a v2.5 -m "Phony 2.5"
 git push origin v2.5
 ```
 
@@ -93,7 +93,7 @@ fdroid build -v -l com.upnp.fakeCall
 
 ```bash
 git add metadata/com.upnp.fakeCall.yml
-git commit -m "Add FakeCall"
+git commit -m "Add Phony"
 git push origin HEAD
 ```
 
@@ -101,7 +101,7 @@ git push origin HEAD
 
 In the merge request description, include:
 
-- App name: FakeCall
+- App name: Phony
 - Package ID: `com.upnp.fakeCall`
 - Source repository URL
 - Release tag being built, for example `v2.5`
@@ -125,21 +125,21 @@ For future releases:
 
 The metadata template also includes `UpdateCheckData` so fdroidserver reads `versionCode` and `versionName` from `app/build.gradle.kts`.
 
-If `fdroid rewritemeta` or `checkupdates` changes the copied `metadata/com.upnp.fakeCall.yml`, commit the rewritten result. The template in this repository already includes the currently expected fdroidserver formatting: unquoted `UpdateCheckData` and `AutoName: Fake Call`.
+If `fdroid rewritemeta` or `checkupdates` changes the copied `metadata/com.upnp.fakeCall.yml`, commit the rewritten result. The template in this repository already includes the currently expected fdroidserver formatting: unquoted `UpdateCheckData` and `AutoName: Phony`.
 
 ## Reproducible Build Fields
 
 The F-Droid metadata includes:
 
 ```yaml
-Binaries: https://github.com/DDOneApps/FakeCall/releases/download/v%v/app-release-full.apk
+Binaries: https://github.com/DDOneApps/Phony/releases/download/v%v/app-release-full.apk
 AllowedAPKSigningKeys: bfa2a6906d3c2f650717c4e0c2f5ffc47c60fa7202bc3a2c7429f8a9e59bde80
 ```
 
 `Binaries` points fdroidserver at the upstream signed APK. `%v` is replaced with the build version name, so version `2.5` resolves to:
 
 ```text
-https://github.com/DDOneApps/FakeCall/releases/download/v2.5/app-release-full.apk
+https://github.com/DDOneApps/Phony/releases/download/v2.5/app-release-full.apk
 ```
 
 `AllowedAPKSigningKeys` is the lower-case SHA-256 fingerprint of the APK signing certificate. It was verified from the public `v2.5` `app-release-full.apk` using Android's APK signature parser. If you ever intentionally rotate the signing key, update this value and explain the key change in the F-Droid merge request.

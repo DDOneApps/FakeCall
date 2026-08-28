@@ -299,6 +299,18 @@ fun OnboardingScreen(
             }
 
             item {
+                ExpressiveButton(
+                    label = stringResource(R.string.onboarding_skip_setup),
+                    onClick = { finishSetup() },
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(ExpressiveCardShape)
+                )
+            }
+
+            item {
                 Spacer(modifier = Modifier.height(12.dp))
             }
         }

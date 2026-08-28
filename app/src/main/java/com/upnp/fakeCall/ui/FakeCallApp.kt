@@ -243,6 +243,7 @@ fun FakeCallApp(
                         onFinish = {
                             navController.navigate(ROUTE_DASHBOARD) {
                                 popUpTo(ROUTE_ONBOARDING) { inclusive = true }
+                                launchSingleTop = true
                             }
                         }
                     )
@@ -306,7 +307,13 @@ fun FakeCallApp(
                                 }
                             }
                         },
-                        onRequestPermissions = { permissionLauncher.launch(RequiredPermissions) }
+                        onRequestPermissions = { permissionLauncher.launch(RequiredPermissions) },
+                        onOpenSetup = {
+                            navController.navigate(ROUTE_ONBOARDING) {
+                                popUpTo(ROUTE_SETTINGS) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
                     )
                 }
             }

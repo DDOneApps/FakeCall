@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Fake Call</string>
+    <string name="app_name">Phony</string>
     <!-- Onboarding -->
-    <string name="onboarding_title">Bienvenido a FakeCall</string>
+    <string name="onboarding_title">Bienvenido a Phony</string>
     <string name="onboarding_subtitle">Una experiencia de llamada falsa prémium con movimiento expresivo y programación instantánea.</string>
     <string name="onboarding_features_title">Características principales</string>
     <string name="feature_realistic_calls_title">Llamadas entrantes realistas</string>
@@ -15,7 +15,7 @@
     <string name="permission_mic_subtitle">Requerido para simular llamadas y grabar audio.</string>
     <string name="permission_mic_action">Conceder permisos</string>
     <string name="permission_phone_title">Haz que &amp; se encargue de las llamadas telefónicas</string>
-    <string name="permission_phone_subtitle">Activa FakeCall en las Cuentas de Llamada del sistema.</string>
+    <string name="permission_phone_subtitle">Activa Phony en las Cuentas de Llamada del sistema.</string>
     <string name="permission_phone_action">Abrir cuentas de llamada</string>
     <string name="permission_alarms_title">Alarmas precisas &amp; recordatorios</string>
     <string name="permission_alarms_subtitle">Necesario para las llamadas de tiempo exacto en Android 12+.</string>
@@ -24,11 +24,11 @@
     <string name="permission_battery_subtitle">Recomendado en ROMs agresivas para que las llamadas suenen con la pantalla apagada.</string>
     <string name="permission_battery_system_action">Desactivar la optimización de batería del sistema</string>
     <string name="permission_battery_oem_action">Abrir la configuración de fondo/inicio automático de la ROM</string>
-    <string name="permission_battery_rom_hint_hyperos">HyperOS/Xiaomi: permita el Inicio Automático y establezca la Optimización de Batería a Sin Restricciones para FakeCall.</string>
-    <string name="permission_battery_rom_hint_oxygenos">OxygenOS/OnePlus Ui: permita el Inicio Automático + Actividad en fondo y elimine la optimización de batería para FakeCall.</string>
-    <string name="permission_battery_rom_hint_coloros">ColorOS/realme UI: permita el inicio automático y desactive la congelación en segundo plano o la optimización profunda para FakeCall.</string>
-    <string name="permission_battery_rom_hint_oneui">Samsung One UI: establezca FakeCall en batería Sin restricciones y permita la actividad en segundo plano.</string>
-    <string name="permission_battery_rom_hint_generic">Si las llamadas fallan con la pantalla apagada, coloque el modo de batería de FakeCall en Sin restricciones y permita actividad/inicio automático en segundo plano.</string>
+    <string name="permission_battery_rom_hint_hyperos">HyperOS/Xiaomi: permita el Inicio Automático y establezca la Optimización de Batería a Sin Restricciones para Phony.</string>
+    <string name="permission_battery_rom_hint_oxygenos">OxygenOS/OnePlus Ui: permita el Inicio Automático + Actividad en fondo y elimine la optimización de batería para Phony.</string>
+    <string name="permission_battery_rom_hint_coloros">ColorOS/realme UI: permita el inicio automático y desactive la congelación en segundo plano o la optimización profunda para Phony.</string>
+    <string name="permission_battery_rom_hint_oneui">Samsung One UI: establezca Phony en batería Sin restricciones y permita la actividad en segundo plano.</string>
+    <string name="permission_battery_rom_hint_generic">Si las llamadas fallan con la pantalla apagada, coloque el modo de batería de Phony en Sin restricciones y permita actividad/inicio automático en segundo plano.</string>
     <string name="permission_completed">Completado</string>
     <string name="onboarding_calling_accounts_help_title">¿No puedes abrir los ajustes de las Cuentas de Llamada?</string>
     <string name="onboarding_calling_accounts_help_subtitle">Algunas compilaciones de OnePlus/Oppo/Realme/Samsung ocultan la pantalla. Puedes abrirla directamente mediante ADB:</string>
@@ -36,7 +36,7 @@
     <string name="onboarding_finish_setup">Finalizar configuración</string>
     <string name="onboarding_finish_setup_needs_permissions">Finalizar configuración (necesita permisos)</string>
     <!-- Dashboard -->
-    <string name="app_title">FakeCall</string>
+    <string name="app_title">Phony</string>
     <string name="app_subtitle">Programa tu escape perfecto</string>
     <string name="cd_open_settings">Abrir ajustes</string>
     <string name="action_cancel_call">Cancelar Llamada</string>
@@ -115,7 +115,7 @@
     <string name="settings_recording_folder_title">Carpeta de grabaciones</string>
     <string name="settings_recording_folder_subtitle">Guardar en: %s</string>
     <string name="settings_reset_recording_folder_title">Restablecer carpeta de grabaciones</string>
-    <string name="settings_reset_recording_folder_subtitle">Usar Descargas/FakeCall</string>
+    <string name="settings_reset_recording_folder_subtitle">Usar Descargas/Phony</string>
     <string name="settings_category_automation">Automation</string>
     <string name="settings_automation_title">Automation &amp; Quick Trigger Defaults</string>
     <string name="settings_automation_subtitle">Used by external intents and the accessibility shortcut.</string>
@@ -128,7 +128,7 @@
     <string name="settings_quick_triggers_audio_note">Los disparadores rápidos reutilizan el audio configurado en la sección de audio de arriba, incluyendo el archivo seleccionado o el comportamiento de reproducción predeterminado.</string>
     <string name="settings_quick_triggers_audio_note_with_preset">Los disparadores rápidos usan la sección de Audio por defecto. Puedes habilitar un archivo de audio personalizado por el preajuste guardado a continuación.</string>
     <string name="settings_open_accessibility_settings">Abrir Ajustes de Accesibilidad</string>
-    <string name="settings_accessibility_note">Activa el servicio de accesibilidad de FakeCall para utilizar el botón de accesibilidad o el acceso directo para una programación de llamada instantánea.</string>
+    <string name="settings_accessibility_note">Activa el servicio de accesibilidad de Phony para utilizar el botón de accesibilidad o el acceso directo para una programación de llamada instantánea.</string>
     <string name="settings_preset_name_label">Nombre del preajuste (opcional)</string>
     <string name="settings_save_preset_button">Guardar Valores Predeterminados Actuales como Preajuste (%1$d/%2$d)</string>
     <string name="settings_no_quick_trigger_presets">No hay preajustes de disparo rápido todavía. Guarda uno para exponerlo como acción de la aplicación de inicio y Ajuste Rápido.</string>
@@ -145,8 +145,8 @@
     <string name="widget_contact_picker_title">Contacto Favorito</string>
     <string name="widget_timing_picker_title">Tiempo</string>
     <string name="widget_schedule_call">Programar Llamada</string>
-    <string name="widget_open_app">Abrir FakeCall</string>
-    <string name="widget_no_favorite_contacts">Aún no hay contactos destacados. Destaca contactos en FakeCall para usar este widget.</string>
+    <string name="widget_open_app">Abrir Phony</string>
+    <string name="widget_no_favorite_contacts">Aún no hay contactos destacados. Destaca contactos en Phony para usar este widget.</string>
     <string name="widget_no_favorite_contacts_short">No hay favoritos</string>
     <string name="widget_star_contacts_hint">Marcar contactos con una estrella en la aplicación.</string>
     <string name="widget_call_cancelled">Llamada programada cancelada.</string>
@@ -254,7 +254,7 @@
     <string name="action_remove">Remover</string>
     <string name="action_apply">Aplicar</string>
     <string name="sim_provider_dialog_title">¿Usar un nombre de proveedor SIM?</string>
-    <string name="sim_provider_dialog_subtitle">Elige qué nombre de tarjeta SIM estable debe mostrarse como el proveedor de FakeCall.</string>
+    <string name="sim_provider_dialog_subtitle">Elige qué nombre de tarjeta SIM estable debe mostrarse como el proveedor de Phony.</string>
     <string name="sim_provider_no_sims">No se encontró ningún nombre de tarjeta SIM estable. Compruebe los permisos del teléfono o introduzca un nombre de proveedor manualmente.</string>
     <string name="sim_provider_slot_label">Tarjeta SIM %1$d</string>
     <string name="sim_provider_use_this">Usar este proveedor</string>
@@ -280,11 +280,11 @@
     <string name="notification_unknown_caller">Desconocido</string>
     <!-- Quick Trigger Tile -->
     <string name="tile_preset_label">Preajuste %d</string>
-    <string name="tile_service_preset_1">Preajuste de FakeCall 1</string>
-    <string name="tile_service_preset_2">Preajuste de FakeCall 2</string>
-    <string name="tile_service_preset_3">Preajuste de FakeCall 3</string>
-    <string name="tile_service_preset_4">Preajuste de FakeCall 4</string>
-    <string name="tile_service_preset_5">Preajuste de FakeCall 5</string>
+    <string name="tile_service_preset_1">Preajuste de Phony 1</string>
+    <string name="tile_service_preset_2">Preajuste de Phony 2</string>
+    <string name="tile_service_preset_3">Preajuste de Phony 3</string>
+    <string name="tile_service_preset_4">Preajuste de Phony 4</string>
+    <string name="tile_service_preset_5">Preajuste de Phony 5</string>
     <string name="tile_not_configured">Sin configurar</string>
     <string name="toast_triggering_now">Activando Llamada Falsa ahora\u2026</string>
     <string name="toast_scheduled_in">Llamada Falsa programada en %d segundos</string>
@@ -326,7 +326,7 @@
     <string name="status_mailbox_imported">Buzón importado.</string>
     <string name="status_import_failed">Importación fallida.</string>
     <string name="status_recording_folder_set">Carpeta de grabación establecida en: %s</string>
-    <string name="status_recording_folder_reset">Carpeta de grabaciones restablecida en Descargas/FakeCall.</string>
+    <string name="status_recording_folder_reset">Carpeta de grabaciones restablecida en Descargas/Phony.</string>
     <string name="status_provider_saved">Proveedor guardado. Verifique que está habilitado en las Cuentas de Llamada.</string>
     <string name="status_provider_register_failed">No se pudo registrar el proveedor. Compruebe los permisos del teléfono y vuelva a intentarlo.</string>
     <string name="status_grant_permissions_scheduling">Concede permisos del teléfono antes de programar.</string>

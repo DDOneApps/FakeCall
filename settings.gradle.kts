@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Fakecall"
+rootProject.name = "Phony"
 include(":app")

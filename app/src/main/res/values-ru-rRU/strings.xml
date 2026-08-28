@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Fake Call</string>
+    <string name="app_name">Phony</string>
     <!-- Onboarding -->
-    <string name="onboarding_title">Добро пожаловать в FakeCall</string>
+    <string name="onboarding_title">Добро пожаловать в Phony</string>
     <string name="onboarding_subtitle">Реалистичные фейковые звонки с выразительной анимацией и мгновенным планированием.</string>
     <string name="onboarding_features_title">Основные возможности</string>
     <string name="feature_realistic_calls_title">Реалистичные входящие звонки</string>
@@ -15,7 +15,7 @@
     <string name="permission_mic_subtitle">Необходимы для симуляции звонков и записи аудио.</string>
     <string name="permission_mic_action">Предоставить разрешения</string>
     <string name="permission_phone_title">Совершение звонков и управление ими</string>
-    <string name="permission_phone_subtitle">Включите FakeCall в системных аккаунтах звонков.</string>
+    <string name="permission_phone_subtitle">Включите Phony в системных аккаунтах звонков.</string>
     <string name="permission_phone_action">Открыть аккаунты звонков</string>
     <string name="permission_alarms_title">Точные будильники и напоминания</string>
     <string name="permission_alarms_subtitle">Нужны для звонков в точное время на Android 12+.</string>
@@ -24,11 +24,11 @@
     <string name="permission_battery_subtitle">Recommended on aggressive ROMs so calls still ring with screen off.</string>
     <string name="permission_battery_system_action">Disable system battery optimization</string>
     <string name="permission_battery_oem_action">Open ROM background/autostart settings</string>
-    <string name="permission_battery_rom_hint_hyperos">HyperOS/Xiaomi: allow Autostart and set Battery saver to No restrictions for FakeCall.</string>
-    <string name="permission_battery_rom_hint_oxygenos">OxygenOS/OnePlus: allow Auto launch + Background activity and remove FakeCall from app battery optimization.</string>
-    <string name="permission_battery_rom_hint_coloros">ColorOS/realme UI: allow Auto launch/Startup and disable background freezing or deep optimization for FakeCall.</string>
-    <string name="permission_battery_rom_hint_oneui">Samsung One UI: set FakeCall to Unrestricted battery and allow background activity.</string>
-    <string name="permission_battery_rom_hint_generic">If calls fail with screen off, set FakeCall battery mode to Unrestricted and allow background activity/autostart.</string>
+    <string name="permission_battery_rom_hint_hyperos">HyperOS/Xiaomi: allow Autostart and set Battery saver to No restrictions for Phony.</string>
+    <string name="permission_battery_rom_hint_oxygenos">OxygenOS/OnePlus: allow Auto launch + Background activity and remove Phony from app battery optimization.</string>
+    <string name="permission_battery_rom_hint_coloros">ColorOS/realme UI: allow Auto launch/Startup and disable background freezing or deep optimization for Phony.</string>
+    <string name="permission_battery_rom_hint_oneui">Samsung One UI: set Phony to Unrestricted battery and allow background activity.</string>
+    <string name="permission_battery_rom_hint_generic">If calls fail with screen off, set Phony battery mode to Unrestricted and allow background activity/autostart.</string>
     <string name="permission_completed">Выполнено</string>
     <string name="onboarding_calling_accounts_help_title">Не можете открыть настройки аккаунтов звонков?</string>
     <string name="onboarding_calling_accounts_help_subtitle">Некоторые прошивки OnePlus/Oppo/Realme/Samsung скрывают этот экран. Можно открыть напрямую через ADB:</string>
@@ -36,7 +36,7 @@
     <string name="onboarding_finish_setup">Завершить настройку</string>
     <string name="onboarding_finish_setup_needs_permissions">Завершить настройку (нужны разрешения)</string>
     <!-- Dashboard -->
-    <string name="app_title">FakeCall</string>
+    <string name="app_title">Phony</string>
     <string name="app_subtitle">Запланируйте идеальный выход</string>
     <string name="cd_open_settings">Открыть настройки</string>
     <string name="action_cancel_call">Отменить звонок</string>
@@ -115,7 +115,7 @@
     <string name="settings_recording_folder_title">Папка для записей</string>
     <string name="settings_recording_folder_subtitle">Сохранять в: %s</string>
     <string name="settings_reset_recording_folder_title">Сбросить папку записей</string>
-    <string name="settings_reset_recording_folder_subtitle">Использовать Downloads/FakeCall</string>
+    <string name="settings_reset_recording_folder_subtitle">Использовать Downloads/Phony</string>
     <string name="settings_category_automation">Автоматизация</string>
     <string name="settings_automation_title">Автоматизация и значения по умолчанию</string>
     <string name="settings_automation_subtitle">Используются внешними интентами и ярлыком специальных возможностей.</string>
@@ -128,7 +128,7 @@
     <string name="settings_quick_triggers_audio_note">Быстрые триггеры используют аудио из раздела «Аудио» выше, включая выбранный файл или стандартное воспроизведение.</string>
     <string name="settings_quick_triggers_audio_note_with_preset">Quick triggers use the Audio section by default. You can enable a custom audio file per saved preset below.</string>
     <string name="settings_open_accessibility_settings">Открыть настройки специальных возможностей</string>
-    <string name="settings_accessibility_note">Включите там службу специальных возможностей FakeCall для мгновенного планирования через системную кнопку или ярлык.</string>
+    <string name="settings_accessibility_note">Включите там службу специальных возможностей Phony для мгновенного планирования через системную кнопку или ярлык.</string>
     <string name="settings_preset_name_label">Название пресета (необязательно)</string>
     <string name="settings_save_preset_button">Сохранить текущие значения как пресет (%1$d/%2$d)</string>
     <string name="settings_no_quick_trigger_presets">Быстрых пресетов пока нет. Сохраните один, чтобы он появился как действие приложения и плитка быстрых настроек.</string>
@@ -145,8 +145,8 @@
     <string name="widget_contact_picker_title">Favorite Contact</string>
     <string name="widget_timing_picker_title">Timing</string>
     <string name="widget_schedule_call">Schedule Call</string>
-    <string name="widget_open_app">Open FakeCall</string>
-    <string name="widget_no_favorite_contacts">No starred contacts yet. Star contacts in FakeCall to use this widget.</string>
+    <string name="widget_open_app">Open Phony</string>
+    <string name="widget_no_favorite_contacts">No starred contacts yet. Star contacts in Phony to use this widget.</string>
     <string name="widget_no_favorite_contacts_short">No favorites</string>
     <string name="widget_star_contacts_hint">Mark contacts with a star in the app.</string>
     <string name="widget_call_cancelled">Scheduled call cancelled.</string>
@@ -254,20 +254,20 @@
     <string name="action_remove">Удалить</string>
     <string name="action_apply">Применить</string>
     <string name="sim_provider_dialog_title">Use a SIM provider name?</string>
-    <string name="sim_provider_dialog_subtitle">Choose which stable SIM card name should be shown as the FakeCall provider.</string>
+    <string name="sim_provider_dialog_subtitle">Choose which stable SIM card name should be shown as the Phony provider.</string>
     <string name="sim_provider_no_sims">No stable SIM card name was found. Check phone permissions or enter a provider name manually.</string>
     <string name="sim_provider_slot_label">SIM slot %1$d</string>
     <string name="sim_provider_use_this">Use this provider</string>
     <string name="sim_provider_keep_current">Keep current</string>
     <!-- Default values -->
     <string name="default_audio_name">По умолчанию</string>
-    <string name="default_provider_name">Fake Call Provider</string>
+    <string name="default_provider_name">Phony Provider</string>
     <string name="default_ivr_node_title">Меню</string>
     <string name="default_caller_name">Неизвестный звонящий</string>
     <string name="default_selected_folder">Выбранная папка</string>
     <string name="default_selected_audio">Выбранное аудио</string>
     <!-- Notifications -->
-    <string name="notification_channel_scheduler">Планировщик Fake Call</string>
+    <string name="notification_channel_scheduler">Планировщик Phony</string>
     <string name="notification_channel_recording">Запись звонка</string>
     <string name="notification_recording_title">Запись звонка</string>
     <string name="notification_recording_text">Запись активна</string>
@@ -280,11 +280,11 @@
     <string name="notification_unknown_caller">Неизвестный</string>
     <!-- Quick Trigger Tile -->
     <string name="tile_preset_label">Пресет %d</string>
-    <string name="tile_service_preset_1">Пресет FakeCall 1</string>
-    <string name="tile_service_preset_2">Пресет FakeCall 2</string>
-    <string name="tile_service_preset_3">Пресет FakeCall 3</string>
-    <string name="tile_service_preset_4">Пресет FakeCall 4</string>
-    <string name="tile_service_preset_5">Пресет FakeCall 5</string>
+    <string name="tile_service_preset_1">Пресет Phony 1</string>
+    <string name="tile_service_preset_2">Пресет Phony 2</string>
+    <string name="tile_service_preset_3">Пресет Phony 3</string>
+    <string name="tile_service_preset_4">Пресет Phony 4</string>
+    <string name="tile_service_preset_5">Пресет Phony 5</string>
     <string name="tile_not_configured">Не настроен</string>
     <string name="toast_triggering_now">Фейковый звонок запускается\u2026</string>
     <string name="toast_scheduled_in">Фейковый звонок запланирован через %d сек.</string>
@@ -326,7 +326,7 @@
     <string name="status_mailbox_imported">Почтовый ящик импортирован.</string>
     <string name="status_import_failed">Импорт не удался.</string>
     <string name="status_recording_folder_set">Папка записей задана: %s</string>
-    <string name="status_recording_folder_reset">Папка записей сброшена на Downloads/FakeCall.</string>
+    <string name="status_recording_folder_reset">Папка записей сброшена на Downloads/Phony.</string>
     <string name="status_provider_saved">Провайдер сохранён. Убедитесь, что он включён в аккаунтах звонков.</string>
     <string name="status_provider_register_failed">Не удалось зарегистрировать провайдер. Проверьте разрешения на звонки и попробуйте снова.</string>
     <string name="status_grant_permissions_scheduling">Предоставьте разрешения на звонки перед планированием.</string>

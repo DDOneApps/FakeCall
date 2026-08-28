@@ -26,7 +26,7 @@ class UpdateChecker {
                 connectTimeout = 8_000
                 readTimeout = 8_000
                 setRequestProperty("Accept", "application/vnd.github+json")
-                setRequestProperty("User-Agent", "FakeCall-Android")
+                setRequestProperty("User-Agent", "Phony-Android")
             }
 
             val responseCode = connection.responseCode
@@ -87,7 +87,7 @@ class UpdateChecker {
     }
 
     companion object {
-        private const val LATEST_RELEASE_API = "https://api.github.com/repos/DDOneApps/FakeCall/releases/latest"
-        private const val LATEST_RELEASE_WEB = "https://github.com/DDOneApps/FakeCall/releases/latest"
+        private const val LATEST_RELEASE_API = "https://api.github.com/repos/DDOneApps/Phony/releases/latest"
+        private const val LATEST_RELEASE_WEB = "https://github.com/DDOneApps/Phony/releases/latest"
     }
 }

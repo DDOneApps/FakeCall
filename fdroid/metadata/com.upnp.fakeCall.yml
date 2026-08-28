@@ -2,16 +2,16 @@ Categories:
   - Phone & SMS
 License: GPL-3.0-only
 AuthorName: DDOneApps
-SourceCode: https://github.com/DDOneApps/FakeCall
-IssueTracker: https://github.com/DDOneApps/FakeCall/issues
-Changelog: https://github.com/DDOneApps/FakeCall/releases
+SourceCode: https://github.com/DDOneApps/Phony
+IssueTracker: https://github.com/DDOneApps/Phony/issues
+Changelog: https://github.com/DDOneApps/Phony/releases
 
-AutoName: Fake Call
+AutoName: Phony
 
 RepoType: git
-Repo: https://github.com/DDOneApps/FakeCall.git
+Repo: https://github.com/DDOneApps/Phony.git
 
-Binaries: https://github.com/DDOneApps/FakeCall/releases/download/v%v/app-release-full.apk
+Binaries: https://github.com/DDOneApps/Phony/releases/download/v%v/app-release-full.apk
 
 Builds:
   - versionName: '2.5'

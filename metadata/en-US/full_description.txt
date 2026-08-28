@@ -1,4 +1,4 @@
-FakeCall schedules simulated incoming calls using Android's Telecom framework, so the call appears in the device's regular phone experience instead of a custom fake-call screen.
+Phony schedules simulated incoming calls using Android's Telecom framework, so the call appears in the device's regular phone experience instead of a custom fake-call screen.
 
 <b>Features:</b>
 

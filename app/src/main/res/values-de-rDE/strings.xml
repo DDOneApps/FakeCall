@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Fake Call</string>
+    <string name="app_name">Phony</string>
     <!-- Onboarding -->
-    <string name="onboarding_title">Willkommen bei FakeCall</string>
+    <string name="onboarding_title">Willkommen bei Phony</string>
     <string name="onboarding_subtitle">Ein hochwertiges Fake-Call-Erlebnis mit ausdrucksstarken Animationen und sofortiger Planung.</string>
     <string name="onboarding_features_title">Hauptfunktionen</string>
     <string name="feature_realistic_calls_title">Realistische eingehende Anrufe</string>
@@ -15,7 +15,7 @@
     <string name="permission_mic_subtitle">Erforderlich, um Anrufe zu simulieren und Audio aufzunehmen.</string>
     <string name="permission_mic_action">Berechtigungen erteilen</string>
     <string name="permission_phone_title">Anrufe tätigen &amp; verwalten</string>
-    <string name="permission_phone_subtitle">Aktiviere FakeCall in den systemweiten Anrufkonten.</string>
+    <string name="permission_phone_subtitle">Aktiviere Phony in den systemweiten Anrufkonten.</string>
     <string name="permission_phone_action">Anrufkonten öffnen</string>
     <string name="permission_alarms_title">Präzise Alarme &amp; Erinnerungen</string>
     <string name="permission_alarms_subtitle">Benötigt für zeitgenaue Anrufe ab Android 12+.</string>
@@ -24,19 +24,20 @@
     <string name="permission_battery_subtitle">Empfohlen bei aggressiven ROMs, damit Anrufe auch bei ausgeschaltetem Display durchkommen.</string>
     <string name="permission_battery_system_action">System-Akkuoptimierung deaktivieren</string>
     <string name="permission_battery_oem_action">ROM-Hintergrund/Autostart öffnen</string>
-    <string name="permission_battery_rom_hint_hyperos">HyperOS/Xiaomi: Autostart erlauben und den Energiesparmodus für FakeCall auf Keine Einschränkungen setzen.</string>
-    <string name="permission_battery_rom_hint_oxygenos">OxygenOS/OnePlus: Auto-Start + Hintergrundaktivität erlauben und FakeCall aus der Akkuoptimierung entfernen.</string>
-    <string name="permission_battery_rom_hint_coloros">ColorOS/realme UI: Auto-Start erlauben und Hintergrund-Einfrieren bzw. tiefe Optimierung für FakeCall deaktivieren.</string>
-    <string name="permission_battery_rom_hint_oneui">Samsung One UI: FakeCall auf Uneingeschränkt stellen und Hintergrundaktivität erlauben.</string>
-    <string name="permission_battery_rom_hint_generic">Wenn Anrufe bei ausgeschaltetem Display nicht ankommen: FakeCall auf Uneingeschränkten Akku setzen und Hintergrundaktivität/Autostart erlauben.</string>
+    <string name="permission_battery_rom_hint_hyperos">HyperOS/Xiaomi: Autostart erlauben und den Energiesparmodus für Phony auf Keine Einschränkungen setzen.</string>
+    <string name="permission_battery_rom_hint_oxygenos">OxygenOS/OnePlus: Auto-Start + Hintergrundaktivität erlauben und Phony aus der Akkuoptimierung entfernen.</string>
+    <string name="permission_battery_rom_hint_coloros">ColorOS/realme UI: Auto-Start erlauben und Hintergrund-Einfrieren bzw. tiefe Optimierung für Phony deaktivieren.</string>
+    <string name="permission_battery_rom_hint_oneui">Samsung One UI: Phony auf Uneingeschränkt stellen und Hintergrundaktivität erlauben.</string>
+    <string name="permission_battery_rom_hint_generic">Wenn Anrufe bei ausgeschaltetem Display nicht ankommen: Phony auf Uneingeschränkten Akku setzen und Hintergrundaktivität/Autostart erlauben.</string>
     <string name="permission_completed">Abgeschlossen</string>
     <string name="onboarding_calling_accounts_help_title">Kannst du die Anrufkonten nicht öffnen?</string>
     <string name="onboarding_calling_accounts_help_subtitle">Einige OnePlus/Oppo/Realme/Samsung-Builds verstecken diesen Bildschirm. Du kannst ihn direkt per ADB öffnen:</string>
     <string name="onboarding_all_set">Alles bereit! Du kannst jetzt deinen ersten Fake-Anruf planen.</string>
     <string name="onboarding_finish_setup">Einrichtung abschließen</string>
     <string name="onboarding_finish_setup_needs_permissions">Einrichtung abschließen (Berechtigungen erforderlich)</string>
+    <string name="onboarding_skip_setup">Überspringen</string>
     <!-- Dashboard -->
-    <string name="app_title">FakeCall</string>
+    <string name="app_title">Phony</string>
     <string name="app_subtitle">Plane deinen perfekten Ausweg</string>
     <string name="cd_open_settings">Einstellungen öffnen</string>
     <string name="action_cancel_call">Anruf abbrechen</string>
@@ -64,6 +65,9 @@
     <string name="cd_back">Zurück</string>
     <string name="settings_title">Einstellungen</string>
     <string name="settings_category_provider">Anbieter</string>
+    <string name="settings_category_setup">Einrichtung</string>
+    <string name="settings_restart_setup_title">Einrichtung erneut starten</string>
+    <string name="settings_restart_setup_subtitle">Berechtigungen, Anrufkonto, SIM-Name und Akku-Schritte erneut prüfen.</string>
     <string name="settings_phone_permissions_required_title">Telefonberechtigungen erforderlich</string>
     <string name="settings_phone_permissions_required_subtitle">Erteile Zugriff, um den Anrufanbieter zu registrieren.</string>
     <string name="settings_provider_name_title">Anbietername</string>
@@ -115,7 +119,7 @@
     <string name="settings_recording_folder_title">Aufnahmeordner</string>
     <string name="settings_recording_folder_subtitle">Speichern unter: %s</string>
     <string name="settings_reset_recording_folder_title">Aufnahmeordner zurücksetzen</string>
-    <string name="settings_reset_recording_folder_subtitle">Downloads/FakeCall verwenden</string>
+    <string name="settings_reset_recording_folder_subtitle">Downloads/Phony verwenden</string>
     <string name="settings_category_automation">Benutzerdefinierte Presets und Automatisierung</string>
     <string name="settings_automation_title">Benutzerdefinierte Presets und Automatisierung</string>
     <string name="settings_automation_subtitle">Wird für Schnelleinstellungen-Kacheln, Homescreen-Shortcuts, Widget, Bedienungshilfen-Kurzbefehl und externe API-Intents verwendet.</string>
@@ -128,7 +132,7 @@
     <string name="settings_quick_triggers_audio_note">Quick Trigger verwenden das im Bereich Audio konfigurierte Audio – inklusive deiner ausgewählten Datei oder Standardwiedergabe.</string>
     <string name="settings_quick_triggers_audio_note_with_preset">Quick Trigger nutzen standardmäßig die Audio-Einstellung oben. Für jedes gespeicherte Preset kannst du unten optional eine eigene Audio-Datei aktivieren.</string>
     <string name="settings_open_accessibility_settings">Bedienungshilfen-Einstellungen öffnen</string>
-    <string name="settings_accessibility_note">Aktiviere dort den FakeCall-Bedienungshilfen-Dienst, um die Systemtaste oder den Kurzbefehl für sofortige Planung zu nutzen.</string>
+    <string name="settings_accessibility_note">Aktiviere dort den Phony-Bedienungshilfen-Dienst, um die Systemtaste oder den Kurzbefehl für sofortige Planung zu nutzen.</string>
     <string name="settings_preset_name_label">Name der Voreinstellung (optional)</string>
     <string name="settings_save_preset_button">Aktuelle Standardwerte als Voreinstellung speichern (%1$d/%2$d)</string>
     <string name="settings_no_quick_trigger_presets">Noch keine Quick-Trigger-Voreinstellungen. Speichere eine, um sie als App-Aktion und Schnelleinstellungen-Kachel bereitzustellen.</string>
@@ -145,8 +149,8 @@
     <string name="widget_contact_picker_title">Favoritenkontakt</string>
     <string name="widget_timing_picker_title">Zeitpunkt</string>
     <string name="widget_schedule_call">Anruf planen</string>
-    <string name="widget_open_app">FakeCall öffnen</string>
-    <string name="widget_no_favorite_contacts">Noch keine favorisierten Kontakte. Markiere Kontakte in FakeCall mit einem Stern.</string>
+    <string name="widget_open_app">Phony öffnen</string>
+    <string name="widget_no_favorite_contacts">Noch keine favorisierten Kontakte. Markiere Kontakte in Phony mit einem Stern.</string>
     <string name="widget_no_favorite_contacts_short">Keine Favoriten</string>
     <string name="widget_star_contacts_hint">Kontakte in der App mit Stern markieren.</string>
     <string name="widget_call_cancelled">Geplanter Anruf abgebrochen.</string>
@@ -254,14 +258,14 @@
     <string name="action_remove">Entfernen</string>
     <string name="action_apply">Anwenden</string>
     <string name="sim_provider_dialog_title">SIM-Anbietername verwenden?</string>
-    <string name="sim_provider_dialog_subtitle">Wähle, welcher stabile SIM-Kartenname als FakeCall-Anbieter angezeigt werden soll.</string>
+    <string name="sim_provider_dialog_subtitle">Wähle, welcher stabile SIM-Kartenname als Phony-Anbieter angezeigt werden soll.</string>
     <string name="sim_provider_no_sims">Es wurde kein stabiler SIM-Kartenname gefunden. Prüfe die Telefonberechtigungen oder gib den Anbieternamen manuell ein.</string>
     <string name="sim_provider_slot_label">SIM-Steckplatz %1$d</string>
     <string name="sim_provider_use_this">Diesen Anbieter verwenden</string>
     <string name="sim_provider_keep_current">Aktuellen behalten</string>
     <!-- Default values -->
     <string name="default_audio_name">Standard</string>
-    <string name="default_provider_name">Fake Call Anbieter</string>
+    <string name="default_provider_name">Phony Anbieter</string>
     <string name="default_ivr_node_title">Menü</string>
     <string name="default_caller_name">Unbekannter Anrufer</string>
     <string name="default_selected_folder">Ausgewählter Ordner</string>
@@ -280,17 +284,17 @@
     <string name="notification_unknown_caller">Unbekannt</string>
     <!-- Quick Trigger Tile -->
     <string name="tile_preset_label">Voreinstellung %d</string>
-    <string name="tile_service_preset_1">FakeCall Voreinstellung 1</string>
-    <string name="tile_service_preset_2">FakeCall Voreinstellung 2</string>
-    <string name="tile_service_preset_3">FakeCall Voreinstellung 3</string>
-    <string name="tile_service_preset_4">FakeCall Voreinstellung 4</string>
-    <string name="tile_service_preset_5">FakeCall Voreinstellung 5</string>
+    <string name="tile_service_preset_1">Phony Voreinstellung 1</string>
+    <string name="tile_service_preset_2">Phony Voreinstellung 2</string>
+    <string name="tile_service_preset_3">Phony Voreinstellung 3</string>
+    <string name="tile_service_preset_4">Phony Voreinstellung 4</string>
+    <string name="tile_service_preset_5">Phony Voreinstellung 5</string>
     <string name="tile_not_configured">Nicht konfiguriert</string>
-    <string name="toast_triggering_now">Fake Call wird jetzt ausgelöst\u2026</string>
-    <string name="toast_scheduled_in">Fake Call in %d Sekunden geplant</string>
+    <string name="toast_triggering_now">Phony wird jetzt ausgelöst\u2026</string>
+    <string name="toast_scheduled_in">Phony in %d Sekunden geplant</string>
     <string name="toast_preset_not_configured">Voreinstellung %d ist nicht konfiguriert</string>
     <string name="toast_preset_run_failed">Voreinstellung %d konnte nicht ausgeführt werden</string>
-    <string name="toast_call_scheduling_failed">Fake Call konnte nicht geplant werden</string>
+    <string name="toast_call_scheduling_failed">Phony konnte nicht geplant werden</string>
     <!-- Update banner -->
     <string name="update_available_banner">Update %s verfügbar!</string>
     <string name="action_download">Herunterladen</string>
@@ -326,7 +330,7 @@
     <string name="status_mailbox_imported">Mailbox importiert.</string>
     <string name="status_import_failed">Import fehlgeschlagen.</string>
     <string name="status_recording_folder_set">Aufnahmeordner gesetzt auf: %s</string>
-    <string name="status_recording_folder_reset">Aufnahmeordner auf Downloads/FakeCall zurückgesetzt.</string>
+    <string name="status_recording_folder_reset">Aufnahmeordner auf Downloads/Phony zurückgesetzt.</string>
     <string name="status_provider_saved">Anbieter gespeichert. Prüfe, ob er in den Anrufkonten aktiviert ist.</string>
     <string name="status_provider_register_failed">Anbieter konnte nicht registriert werden. Prüfe die Telefonberechtigungen und versuche es erneut.</string>
     <string name="status_grant_permissions_scheduling">Erteile Telefonberechtigungen vor der Planung.</string>
@@ -366,7 +370,7 @@
     <string name="alarm_mode_subtitle">Anrufbasierte Wecker und Reminder</string>
     <string name="alarm_add_new">Neuer Wecker</string>
     <string name="alarm_empty_title">Noch keine Wecker</string>
-    <string name="alarm_empty_subtitle">Erstelle deinen ersten Wecker-FakeCall.</string>
+    <string name="alarm_empty_subtitle">Erstelle deinen ersten Wecker-Phony.</string>
     <string name="alarm_create_title">Wecker erstellen</string>
     <string name="alarm_create_subtitle">Setup für deinen neuen Wecker</string>
     <string name="alarm_edit_title">Wecker bearbeiten</string>

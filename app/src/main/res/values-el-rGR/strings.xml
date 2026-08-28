@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Fake Call</string>
+    <string name="app_name">Phony</string>
     <!-- Onboarding -->
-    <string name="onboarding_title">Καλώς ήρθατε στο FakeCall</string>
+    <string name="onboarding_title">Καλώς ήρθατε στο Phony</string>
     <string name="onboarding_subtitle">Μια μοναδική εμπειρία ψεύτικων κλήσεων με εκφραστική κίνηση και άμεσο προγραμματισμό.</string>
     <string name="onboarding_features_title">Κύρια χαρακτηριστικά</string>
     <string name="feature_realistic_calls_title">Ρεαλιστικές εισερχόμενες κλήσεις</string>
@@ -15,7 +15,7 @@
     <string name="permission_mic_subtitle">Απαιτείται για προσομοίωση κλήσεων και εγγραφή ήχου.</string>
     <string name="permission_mic_action">Χορήγηση αδειών</string>
     <string name="permission_phone_title">Πραγματοποίηση και διαχείριση τηλεφωνικών κλήσεων</string>
-    <string name="permission_phone_subtitle">Ενεργοποιήστε το FakeCall στους λογαριασμούς κλήσης του συστήματος.</string>
+    <string name="permission_phone_subtitle">Ενεργοποιήστε το Phony στους λογαριασμούς κλήσης του συστήματος.</string>
     <string name="permission_phone_action">Άνοιγμα λογαριασμών κλήσης</string>
     <string name="permission_alarms_title">Ακριβείς ειδοποιήσεις και υπενθυμίσεις</string>
     <string name="permission_alarms_subtitle">Απαιτείται για κλήσεις σε ακριβή ώρα στο Android 12+.</string>
@@ -24,11 +24,11 @@
     <string name="permission_battery_subtitle">Recommended on aggressive ROMs so calls still ring with screen off.</string>
     <string name="permission_battery_system_action">Disable system battery optimization</string>
     <string name="permission_battery_oem_action">Open ROM background/autostart settings</string>
-    <string name="permission_battery_rom_hint_hyperos">HyperOS/Xiaomi: allow Autostart and set Battery saver to No restrictions for FakeCall.</string>
-    <string name="permission_battery_rom_hint_oxygenos">OxygenOS/OnePlus: allow Auto launch + Background activity and remove FakeCall from app battery optimization.</string>
-    <string name="permission_battery_rom_hint_coloros">ColorOS/realme UI: allow Auto launch/Startup and disable background freezing or deep optimization for FakeCall.</string>
-    <string name="permission_battery_rom_hint_oneui">Samsung One UI: set FakeCall to Unrestricted battery and allow background activity.</string>
-    <string name="permission_battery_rom_hint_generic">If calls fail with screen off, set FakeCall battery mode to Unrestricted and allow background activity/autostart.</string>
+    <string name="permission_battery_rom_hint_hyperos">HyperOS/Xiaomi: allow Autostart and set Battery saver to No restrictions for Phony.</string>
+    <string name="permission_battery_rom_hint_oxygenos">OxygenOS/OnePlus: allow Auto launch + Background activity and remove Phony from app battery optimization.</string>
+    <string name="permission_battery_rom_hint_coloros">ColorOS/realme UI: allow Auto launch/Startup and disable background freezing or deep optimization for Phony.</string>
+    <string name="permission_battery_rom_hint_oneui">Samsung One UI: set Phony to Unrestricted battery and allow background activity.</string>
+    <string name="permission_battery_rom_hint_generic">If calls fail with screen off, set Phony battery mode to Unrestricted and allow background activity/autostart.</string>
     <string name="permission_completed">Ολοκληρώθηκε</string>
     <string name="onboarding_calling_accounts_help_title">Δεν μπορείτε να ανοίξετε τις ρυθμίσεις λογαριασμών κλήσης;</string>
     <string name="onboarding_calling_accounts_help_subtitle">Ορισμένες κατασκευές OnePlus/Oppo/Realme/Samsung κρύβουν την οθόνη. Μπορείτε να την ανοίξετε απευθείας μέσω ADB:</string>
@@ -36,7 +36,7 @@
     <string name="onboarding_finish_setup">Ολοκλήρωση ρυθμίσεων</string>
     <string name="onboarding_finish_setup_needs_permissions">Ολοκλήρωση ρυθμίσεων (απαιτούνται άδειες)</string>
     <!-- Dashboard -->
-    <string name="app_title">FakeCall</string>
+    <string name="app_title">Phony</string>
     <string name="app_subtitle">Προγραμματίστε την τέλεια διαφυγή σας</string>
     <string name="cd_open_settings">Άνοιγμα ρυθμίσεων</string>
     <string name="action_cancel_call">Ακύρωση κλήσης</string>
@@ -115,7 +115,7 @@
     <string name="settings_recording_folder_title">Φάκελος εγγραφής</string>
     <string name="settings_recording_folder_subtitle">Αποθήκευση σε: %s</string>
     <string name="settings_reset_recording_folder_title">Επαναφορά φακέλου εγγραφής</string>
-    <string name="settings_reset_recording_folder_subtitle">Χρήση Downloads/FakeCall</string>
+    <string name="settings_reset_recording_folder_subtitle">Χρήση Downloads/Phony</string>
     <string name="settings_category_automation">Αυτοματισμός</string>
     <string name="settings_automation_title">Αυτοματισμός και προεπιλεγμένες ρυθμίσεις γρήγορης ενεργοποίησης</string>
     <string name="settings_automation_subtitle">Χρησιμοποιούνται από εξωτερικές προθέσεις και τη συντόμευση προσβασιμότητας.</string>
@@ -128,7 +128,7 @@
     <string name="settings_quick_triggers_audio_note">Οι γρήγορες ενεργοποιήσεις χρησιμοποιούν ξανά τον ήχο που έχει ρυθμιστεί στην ενότητα Ήχου παραπάνω, συμπεριλαμβανομένου του επιλεγμένου αρχείου ή της προεπιλεγμένης συμπεριφοράς αναπαραγωγής.</string>
     <string name="settings_quick_triggers_audio_note_with_preset">Quick triggers use the Audio section by default. You can enable a custom audio file per saved preset below.</string>
     <string name="settings_open_accessibility_settings">Άνοιγμα ρυθμίσεων προσβασιμότητας</string>
-    <string name="settings_accessibility_note">Ενεργοποιήστε την υπηρεσία προσβασιμότητας FakeCall εκεί, για να χρησιμοποιήσετε το κουμπί προσβασιμότητας του συστήματος ή τη συντόμευση για άμεσο προγραμματισμό.</string>
+    <string name="settings_accessibility_note">Ενεργοποιήστε την υπηρεσία προσβασιμότητας Phony εκεί, για να χρησιμοποιήσετε το κουμπί προσβασιμότητας του συστήματος ή τη συντόμευση για άμεσο προγραμματισμό.</string>
     <string name="settings_preset_name_label">Όνομα προρύθμισης (προαιρετικό)</string>
     <string name="settings_save_preset_button">Αποθήκευση τρέχουσας προεπιλογής ως προρύθμιση (%1$d/%2$d)</string>
     <string name="settings_no_quick_trigger_presets">Καμία προρύθμιση γρήγορης ενεργοποίησης ακόμα. Αποθηκεύστε μία για να την εκθέσετε ως συντόμευση εικονιδίου εφαρμογής και πλακίδιο γρήγορων ρυθμίσεων.</string>
@@ -145,8 +145,8 @@
     <string name="widget_contact_picker_title">Favorite Contact</string>
     <string name="widget_timing_picker_title">Timing</string>
     <string name="widget_schedule_call">Schedule Call</string>
-    <string name="widget_open_app">Open FakeCall</string>
-    <string name="widget_no_favorite_contacts">No starred contacts yet. Star contacts in FakeCall to use this widget.</string>
+    <string name="widget_open_app">Open Phony</string>
+    <string name="widget_no_favorite_contacts">No starred contacts yet. Star contacts in Phony to use this widget.</string>
     <string name="widget_no_favorite_contacts_short">No favorites</string>
     <string name="widget_star_contacts_hint">Mark contacts with a star in the app.</string>
     <string name="widget_call_cancelled">Scheduled call cancelled.</string>
@@ -254,20 +254,20 @@
     <string name="action_remove">Αφαίρεση</string>
     <string name="action_apply">Εφαρμογή</string>
     <string name="sim_provider_dialog_title">Use a SIM provider name?</string>
-    <string name="sim_provider_dialog_subtitle">Choose which stable SIM card name should be shown as the FakeCall provider.</string>
+    <string name="sim_provider_dialog_subtitle">Choose which stable SIM card name should be shown as the Phony provider.</string>
     <string name="sim_provider_no_sims">No stable SIM card name was found. Check phone permissions or enter a provider name manually.</string>
     <string name="sim_provider_slot_label">SIM slot %1$d</string>
     <string name="sim_provider_use_this">Use this provider</string>
     <string name="sim_provider_keep_current">Keep current</string>
     <!-- Default values -->
     <string name="default_audio_name">Προεπιλεγμένος</string>
-    <string name="default_provider_name">Πάροχος Fake Call</string>
+    <string name="default_provider_name">Πάροχος Phony</string>
     <string name="default_ivr_node_title">Μενού</string>
     <string name="default_caller_name">Άγνωστος καλών</string>
     <string name="default_selected_folder">Επιλεγμένος φάκελος</string>
     <string name="default_selected_audio">Επιλεγμένος ήχος</string>
     <!-- Notifications -->
-    <string name="notification_channel_scheduler">Προγραμματιστής Fake Call</string>
+    <string name="notification_channel_scheduler">Προγραμματιστής Phony</string>
     <string name="notification_channel_recording">Εγγραφή κλήσης</string>
     <string name="notification_recording_title">Εγγραφή κλήσης</string>
     <string name="notification_recording_text">Η εγγραφή είναι ενεργή</string>
@@ -280,17 +280,17 @@
     <string name="notification_unknown_caller">Άγνωστος</string>
     <!-- Quick Trigger Tile -->
     <string name="tile_preset_label">Προρύθμιση %d</string>
-    <string name="tile_service_preset_1">Προρύθμιση FakeCall 1</string>
-    <string name="tile_service_preset_2">Προρύθμιση FakeCall 2</string>
-    <string name="tile_service_preset_3">Προρύθμιση FakeCall 3</string>
-    <string name="tile_service_preset_4">Προρύθμιση FakeCall 4</string>
-    <string name="tile_service_preset_5">Προρύθμιση FakeCall 5</string>
+    <string name="tile_service_preset_1">Προρύθμιση Phony 1</string>
+    <string name="tile_service_preset_2">Προρύθμιση Phony 2</string>
+    <string name="tile_service_preset_3">Προρύθμιση Phony 3</string>
+    <string name="tile_service_preset_4">Προρύθμιση Phony 4</string>
+    <string name="tile_service_preset_5">Προρύθμιση Phony 5</string>
     <string name="tile_not_configured">Δεν έχει ρυθμιστεί</string>
-    <string name="toast_triggering_now">Ενεργοποίηση Fake Call τώρα...</string>
-    <string name="toast_scheduled_in">Fake Call προγραμματισμένη σε %d δευτερόλεπτα</string>
+    <string name="toast_triggering_now">Ενεργοποίηση Phony τώρα...</string>
+    <string name="toast_scheduled_in">Phony προγραμματισμένη σε %d δευτερόλεπτα</string>
     <string name="toast_preset_not_configured">Η προρύθμιση %d δεν έχει ρυθμιστεί</string>
     <string name="toast_preset_run_failed">Δεν ήταν δυνατή η εκτέλεση της προρύθμισης %d</string>
-    <string name="toast_call_scheduling_failed">Δεν ήταν δυνατός ο προγραμματισμός του Fake Call</string>
+    <string name="toast_call_scheduling_failed">Δεν ήταν δυνατός ο προγραμματισμός του Phony</string>
     <!-- Update banner -->
     <string name="update_available_banner">Ενημέρωση %s διαθέσιμη!</string>
     <string name="action_download">Λήψη</string>
@@ -326,7 +326,7 @@
     <string name="status_mailbox_imported">Εισήχθη το γραμματοκιβώτιο.</string>
     <string name="status_import_failed">Η εισαγωγή απέτυχε.</string>
     <string name="status_recording_folder_set">Φάκελος εγγραφής ορίστηκε ο: %s</string>
-    <string name="status_recording_folder_reset">Ο φάκελος εγγραφής επαναφέρθηκε στο Downloads/FakeCall.</string>
+    <string name="status_recording_folder_reset">Ο φάκελος εγγραφής επαναφέρθηκε στο Downloads/Phony.</string>
     <string name="status_provider_saved">Ο πάροχος αποθηκεύτηκε. Επαληθεύστε ότι είναι ενεργοποιημένος στους λογαριασμούς κλήσης.</string>
     <string name="status_provider_register_failed">Δεν ήταν δυνατή η καταχώρηση του παρόχου. Ελέγξτε τις άδειες τηλεφώνου και δοκιμάστε ξανά.</string>
     <string name="status_grant_permissions_scheduling">Χορηγήστε άδειες τηλεφώνου πριν προγραμματίσετε.</string>

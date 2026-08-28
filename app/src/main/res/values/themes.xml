@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.Fakecall" parent="android:Theme.Material.Light.NoActionBar" />
-    <style name="Theme.Fakecall.ShortcutTrigger" parent="android:Theme.Translucent.NoTitleBar">
+    <style name="Theme.Phony" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.Phony.ShortcutTrigger" parent="android:Theme.Translucent.NoTitleBar">
         <item name="android:windowAnimationStyle">@null</item>
     </style>
 </resources>

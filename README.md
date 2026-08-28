@@ -1,4 +1,4 @@
-# FakeCall
+# Phony
 
 <div align="center">
 
@@ -6,21 +6,21 @@
 
 <p>
 
-[![GitHub stars](https://img.shields.io/github/stars/DDOneApps/FakeCall?style=for-the-badge)](https://github.com/DDOneApps/FakeCall/stargazers) [![GitHub forks](https://img.shields.io/github/forks/DDOneApps/FakeCall?style=for-the-badge)](https://github.com/DDOneApps/FakeCall/network) [![GitHub issues](https://img.shields.io/github/issues/DDOneApps/FakeCall?style=for-the-badge)](https://github.com/DDOneApps/FakeCall/issues)
-[![Downloads](https://img.shields.io/github/downloads/DDOneApps/FakeCall/total?color=green&style=for-the-badge)](https://github.com/DDOneApps/FakeCall/releases/latest) 
-[![Crowdin](https://img.shields.io/badge/dynamic/json?color=red&label=translation&query=$.message&style=for-the-badge&url=https://raw.githubusercontent.com/DDOneApps/FakeCall/main/badge.json&logo=crowdin)](https://crowdin.com/project/fakecall)
+[![GitHub stars](https://img.shields.io/github/stars/DDOneApps/Phony?style=for-the-badge)](https://github.com/DDOneApps/Phony/stargazers) [![GitHub forks](https://img.shields.io/github/forks/DDOneApps/Phony?style=for-the-badge)](https://github.com/DDOneApps/Phony/network) [![GitHub issues](https://img.shields.io/github/issues/DDOneApps/Phony?style=for-the-badge)](https://github.com/DDOneApps/Phony/issues)
+[![Downloads](https://img.shields.io/github/downloads/DDOneApps/Phony/total?color=green&style=for-the-badge)](https://github.com/DDOneApps/Phony/releases/latest) 
+[![Crowdin](https://img.shields.io/badge/dynamic/json?color=red&label=translation&query=$.message&style=for-the-badge&url=https://raw.githubusercontent.com/DDOneApps/Phony/main/badge.json&logo=crowdin)](https://crowdin.com/project/phony)
 
 [![GitHub license](https://img.shields.io/badge/license-GPL%20v3-red?style=for-the-badge)](LICENSE)
 </p>
 
-**An open-source Android application to simulate incoming calls, featuring a modern Material 3 UI with dynamic Monet support.**
+**Phony (formerly FakeCall) is an open-source Android application to simulate incoming calls, featuring a modern Material 3 UI with dynamic Monet support.**
 
 
 </div>
 
 ## Overview
 Ever wanted to get [that Feature of old Samsung phones](https://www.youtube.com/watch?v=OKV3Eei5JNE) to simulate an incoming call with audio on the originial phone app?
-Introducing FakeCall. Unlike other apps that merely mock a UI, this app integrates directly with the Android Telecom Framework to provide an indistinguishable calling experience. It has many features to make the call as real as possible.
+Introducing Phony. Unlike other apps that merely mock a UI, this app integrates directly with the Android Telecom Framework to provide an indistinguishable calling experience. It has many features to make the call as real as possible.
 
 <p align=center>
 
@@ -28,20 +28,20 @@ Introducing FakeCall. Unlike other apps that merely mock a UI, this app integrat
 
 </p>
 
--  **Original Dialer:** FakeCall uses your real Phone app to simulate the incoming Call by creating [a Phone Account in android's TelecomManager](https://developer.android.com/reference/android/telecom/TelecomManager)
+-  **Original Dialer:** Phony uses your real Phone app to simulate the incoming Call by creating [a Phone Account in android's TelecomManager](https://developer.android.com/reference/android/telecom/TelecomManager)
 -  **Customizable:** The app lets you customize the name of the fake phone account in the settings to match your real service provider.
 -  **Schedule:** Set exact Timers for when the call should come in
 -  **Audio Support:** You can upload audio files that play when the call is answered
 -  **Call History:** Simulated calls are being shown in call history
 -  **IVR Mode:** assign audio files to keys and make sub-menus
--  **Recording:** record microphone audio of a Fake call
+-  **Recording:** record microphone audio of a simulated call
 -  **Automation API:** trigger calls from Tasker, MacroDroid, or ADB via a broadcast intent
 -  **Accessibility Shortcut:** schedule a fake call from the system accessibility button using saved defaults
 -  **Quick Trigger Presets:** save up to 5 presets and expose them as launcher app actions + Quick Settings tiles
 
 ## Automation API
 
-FakeCall exposes a broadcast receiver for automation apps.
+Phony exposes a broadcast receiver for automation apps.
 
 **Action**
 
@@ -53,7 +53,7 @@ FakeCall exposes a broadcast receiver for automation apps.
 - `caller_number` (`String`, optional)
 - `delay` (`Int`, optional, seconds)
 
-If one or more extras are omitted, FakeCall falls back to the saved **Automation & Quick Trigger Defaults** from Settings.
+If one or more extras are omitted, Phony falls back to the saved **Automation & Quick Trigger Defaults** from Settings.
 
 **ADB example (recommended, package-targeted, no `-n` needed)**
 
@@ -79,7 +79,7 @@ For Tasker, MacroDroid, etc. set:
 
 ## Accessibility Quick Trigger
 
-Enable the `FakeCall` accessibility service and assign it to the system accessibility button or shortcut. When invoked, it schedules a fake call using the saved quick-trigger defaults from Settings and shows a short confirmation toast.
+Enable the `Phony` accessibility service and assign it to the system accessibility button or shortcut. When invoked, it schedules a fake call using the saved quick-trigger defaults from Settings and shows a short confirmation toast.
 
 You can configure these defaults inside:
 
@@ -88,17 +88,17 @@ You can configure these defaults inside:
 You can also save up to five quick trigger presets from the same section:
 
 - presets appear as launcher app actions (long-press the app icon)
-- presets are available as Quick Settings tiles (`FakeCall Preset 1` ... `FakeCall Preset 5`)
+- presets are available as Quick Settings tiles (`Phony Preset 1` ... `Phony Preset 5`)
 
 ## Screenshots
 
-![Screenshot 1](https://github.com/DDOneApps/FakeCall/blob/main/metadata/en-US/images/phoneScreenshots/1.png)
+![Screenshot 1](https://github.com/DDOneApps/Phony/blob/main/metadata/en-US/images/phoneScreenshots/1.png)
 _Main screen_
 
-![Screenshot 3](https://github.com/DDOneApps/FakeCall/blob/main/metadata/en-US/images/phoneScreenshots/3.png)
+![Screenshot 3](https://github.com/DDOneApps/Phony/blob/main/metadata/en-US/images/phoneScreenshots/3.png)
 _settings screen_
 
-![Screenshot 4](https://github.com/DDOneApps/FakeCall/blob/main/metadata/en-US/images/phoneScreenshots/2.png)
+![Screenshot 4](https://github.com/DDOneApps/Phony/blob/main/metadata/en-US/images/phoneScreenshots/2.png)
 _Incoming call (example)_
 
 ## Tech Stack
@@ -124,18 +124,18 @@ _Incoming call (example)_
 
 ## Star History
 
-<a href="https://www.star-history.com/?repos=DDOneApps%2FFakeCall&type=date&legend=top-left">
+<a href="https://www.star-history.com/?repos=DDOneApps%2FPhony&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=DDOneApps/FakeCall&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=DDOneApps/FakeCall&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=DDOneApps/FakeCall&type=date&legend=top-left" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=DDOneApps/Phony&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=DDOneApps/Phony&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=DDOneApps/Phony&type=date&legend=top-left" />
  </picture>
 </a>
 
 ##  Project Structure
 
 ```
-FakeCall/
+Phony/
 ├── .github/          # GitHub related files (e.g., issue templates, workflows) - TODO: If applicable
 ├── .idea/            # IntelliJ/Android Studio project configuration files
 ├── app/              # Main Android application module
@@ -156,13 +156,13 @@ FakeCall/
 
 ## Contributing
 
-We welcome contributions to FakeCall!
+We welcome contributions to Phony!
 
-If you want to help translating, do it [Here](https://crowdin.com/project/fakecall/invite?h=ad1b7ff358ecf52e9f823b4f7f691f1d2725120) via crowdin
+If you want to help translating, do it [Here](https://crowdin.com/project/phony/invite?h=ad1b7ff358ecf52e9f823b4f7f691f1d2725120) via crowdin
 ## License
 
 This Project is licenced under GNU General Public License.
-Read it [Here](https://raw.githubusercontent.com/DDOneApps/FakeCall/refs/heads/main/LICENSE)
+Read it [Here](https://raw.githubusercontent.com/DDOneApps/Phony/refs/heads/main/LICENSE)
 
 ## Acknowledgments
 
@@ -171,7 +171,7 @@ Read it [Here](https://raw.githubusercontent.com/DDOneApps/FakeCall/refs/heads/m
 
 ## Support
 
--   If you encounter any bugs or have feature requests, please open an issue on [GitHub Issues](https://github.com/DDOneApps/FakeCall/issues).
+-   If you encounter any bugs or have feature requests, please open an issue on [GitHub Issues](https://github.com/DDOneApps/Phony/issues).
 
 ---
 
