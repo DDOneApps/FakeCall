@@ -126,12 +126,11 @@ _Incoming call (example)_
 
 <a href="https://www.star-history.com/?repos=DDOneApps%2FPhony&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=DDOneApps/Phony&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=DDOneApps/Phony&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=DDOneApps/Phony&type=date&legend=top-left" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=DDOneApps/Phony&type=date&theme=dark&legend=top-left&sealed_token=94RDa-jVjWC7k4fnw3wGcsA_OLrM7ysC39rUlACOBSv2YGxFEmZ2W9hCARovw72YNpf674AQYZVtkO9gFQHPjLRaf0Hgqnu4FKbXnsr-J8hkblFjmm9bLA" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=DDOneApps/Phony&type=date&legend=top-left&sealed_token=94RDa-jVjWC7k4fnw3wGcsA_OLrM7ysC39rUlACOBSv2YGxFEmZ2W9hCARovw72YNpf674AQYZVtkO9gFQHPjLRaf0Hgqnu4FKbXnsr-J8hkblFjmm9bLA" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=DDOneApps/Phony&type=date&legend=top-left&sealed_token=94RDa-jVjWC7k4fnw3wGcsA_OLrM7ysC39rUlACOBSv2YGxFEmZ2W9hCARovw72YNpf674AQYZVtkO9gFQHPjLRaf0Hgqnu4FKbXnsr-J8hkblFjmm9bLA" />
  </picture>
 </a>
-
 ##  Project Structure
 
 ```
