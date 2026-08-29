@@ -8,7 +8,7 @@
 
 [![GitHub stars](https://img.shields.io/github/stars/DDOneApps/Phony?style=for-the-badge)](https://github.com/DDOneApps/Phony/stargazers) [![GitHub forks](https://img.shields.io/github/forks/DDOneApps/Phony?style=for-the-badge)](https://github.com/DDOneApps/Phony/network) [![GitHub issues](https://img.shields.io/github/issues/DDOneApps/Phony?style=for-the-badge)](https://github.com/DDOneApps/Phony/issues)
 [![Downloads](https://img.shields.io/github/downloads/DDOneApps/Phony/total?color=green&style=for-the-badge)](https://github.com/DDOneApps/Phony/releases/latest) 
-[![Crowdin](https://img.shields.io/badge/dynamic/json?color=red&label=translation&query=$.message&style=for-the-badge&url=https://raw.githubusercontent.com/DDOneApps/Phony/main/badge.json&logo=crowdin)](https://crowdin.com/project/phony)
+[![Crowdin](https://img.shields.io/badge/dynamic/json?color=red&label=translation&query=$.message&style=for-the-badge&url=https://raw.githubusercontent.com/DDOneApps/Phony/main/badge.json&logo=crowdin)](https://crowdin.com/project/fakecall)
 
 [![GitHub license](https://img.shields.io/badge/license-GPL%20v3-red?style=for-the-badge)](LICENSE)
 </p>
@@ -157,7 +157,7 @@ Phony/
 
 We welcome contributions to Phony!
 
-If you want to help translating, do it [Here](https://crowdin.com/project/phony/invite?h=ad1b7ff358ecf52e9f823b4f7f691f1d2725120) via crowdin
+If you want to help translating, do it [Here](https://crowdin.com/project/fakecall/invite?h=ad1b7ff358ecf52e9f823b4f7f691f1d2725120) via crowdin
 ## License
 
 This Project is licenced under GNU General Public License.
